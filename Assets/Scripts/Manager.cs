@@ -8,6 +8,7 @@ public class Manager : MonoBehaviour
     public Text sdkStatusText;
     public Transform panel;
     public GameObject buttonPrefab;
+    public Text purchasesText;
 
     private void Awake()
     {
@@ -19,6 +20,7 @@ public class Manager : MonoBehaviour
     {
         yield return new WaitForSeconds(1f);
         AppCoinsSDK.Instance.OnProductsReceived += HandleProductsReceived;
+        AppCoinsSDK.Instance.OnListPurchasesReceived += HandleListPurchasesReceived;
         AppCoinsSDK.Instance.Initialize();
     }
 
@@ -33,11 +35,44 @@ public class Manager : MonoBehaviour
             button.GetComponentInChildren<Text>().text = product.title;
             button.GetComponent<Button>().onClick.AddListener(() => HandlePurchaseClick(product));
         }
+
+        StartCoroutine(DelayedListPurchases());
     }
 
     public void HandlePurchaseClick(ProductData product)
     {
         Debug.Log("HandlePurchaseClick: " + product.sku);
         AppCoinsSDK.Instance.Purchase(product.sku);
+    }
+
+    public string GetPurchaseStateLabel(string state)
+    {
+        switch (state)
+        {
+            case AppCoinsSDK.PURCHASE_PENDING:
+                return "Pending";
+            case AppCoinsSDK.PURCHASE_ACKNOWLEDGED:
+                return "Acknowledged";
+            case AppCoinsSDK.PURCHASE_CONSUMED:
+                return "Consumed";
+            default:
+                return "Unknown";
+        }
+    }
+
+    public IEnumerator DelayedListPurchases()
+    {
+        yield return new WaitForSeconds(1f);
+        AppCoinsSDK.Instance.ListPurchases();
+    }
+
+    public void HandleListPurchasesReceived(object sender, ListPurchasesReceivedEventArgs e)
+    {
+        purchasesText.text = "Purchases:\n";
+
+        foreach (var purchase in e.Purchases)
+        {
+            purchasesText.text += purchase.sku + " - " + this.GetPurchaseStateLabel(purchase.state) + "\n";
+        }
     }
 }
