@@ -39,10 +39,16 @@ extension ProductData {
 
     @objc public func getProducts(skus: [String], completion: @escaping ([[String: Any]]) -> Void) {
         Task {
+            var products = [Product]()
             var productItems = [ProductData]()
             
             do {
-                let products = try await Product.products(for: skus)
+                if (skus.isEmpty) {
+                    products = try await Product.products()
+                } else {
+                    products = try await Product.products(for: skus)
+                }
+                
                 productItems = products.map { product in
                                         ProductData(
                                             sku: product.sku,

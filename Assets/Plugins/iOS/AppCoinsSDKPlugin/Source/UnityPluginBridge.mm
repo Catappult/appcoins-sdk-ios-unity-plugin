@@ -1,5 +1,5 @@
 #import <Foundation/Foundation.h>
-#include "UnityFramework/UnityFramework-Swift.h"
+#import "UnityFramework/UnityFramework-Swift.h"
 
 typedef void (*JsonCallback)(const char *json);
 
@@ -15,7 +15,7 @@ extern "C" {
                 }
                 return;
             }
-            
+
             NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
             if (callback) {
                 callback([jsonString UTF8String]);
@@ -40,7 +40,7 @@ extern "C" {
                 }
                 return;
             }
-            
+
             NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
             if (callback) {
                 callback([jsonString UTF8String]);

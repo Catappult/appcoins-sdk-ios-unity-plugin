@@ -43,7 +43,7 @@ public class AppCoinsSDK
     private static extern void _isAvailable(JsonCallback callback);
 
     [DllImport("__Internal")]
-    private static extern void _getProducts(string[] skus, JsonCallback callback);
+    private static extern void _getProducts(string[] skus, int count, JsonCallback callback);
 
     [DllImport("__Internal")]
     private static extern void _purchase(string sku, JsonCallback callback);
@@ -87,8 +87,9 @@ public class AppCoinsSDK
     public async Task<ProductData[]> GetProducts(string[] skus = null)
     {
 #if UNITY_IOS && !UNITY_EDITOR
+        skus ??= new string[0];
         this._tcsGetProducts = new TaskCompletionSource<ProductData[]>();
-        _getProducts(skus, OnGetProductsCompleted);
+        _getProducts(skus, skus.Length, OnGetProductsCompleted);
         return await this._tcsGetProducts.Task;        
 #else
         return await Task.FromResult(new ProductData[0]);
@@ -99,14 +100,14 @@ public class AppCoinsSDK
     [AOT.MonoPInvokeCallback(typeof(JsonCallback))]
     private static void OnGetProductsCompleted(string json)
     {
-        var response = JsonUtility.FromJson<GetProductsResponse>(json);
+        var response = JsonUtility.FromJson<GetProductsResponse>("{\"Products\":" + json + "}");
         Instance._tcsGetProducts.SetResult(response.Products);
     }
 #endif
 
     #endregion
 
-    #region Get Products
+    #region Purchase
     private TaskCompletionSource<PurchaseResponse> _tcsPurchase;
     public async Task<PurchaseResponse> Purchase(string sku)
     {
