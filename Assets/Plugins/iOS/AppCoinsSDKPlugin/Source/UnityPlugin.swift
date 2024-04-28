@@ -51,6 +51,22 @@ extension PurchaseData {
     
     @objc public static let shared = UnityPlugin()
 
+    @objc public func handleDeepLink(url: String, completion: @escaping ([String: Any]) -> Void) {
+        Task {
+            if let urlObject = URL(string: url) {
+                if AppcSDK.handle(redirectURL: urlObject) {
+                    completion(["Success": true])
+                }
+                else {
+                    completion(["Success": false])
+                }
+            } else {
+                // Handle the case where the URL conversion fails
+                completion(["Success": false, "Error": "Invalid URL"])
+            }
+        }
+    }
+
     @objc public func isAvailable(completion: @escaping ([String: Any]) -> Void) {
         Task {
             let sdkAvailable = await AppcSDK.isAvailable()

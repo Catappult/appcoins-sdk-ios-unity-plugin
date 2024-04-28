@@ -76,6 +76,9 @@ public class AppCoinsSDK
     private delegate void JsonCallback(string result);
 
     [DllImport("__Internal")]
+    private static extern void _handleDeepLink(string url, JsonCallback callback);
+
+    [DllImport("__Internal")]
     private static extern void _isAvailable(JsonCallback callback);
 
     [DllImport("__Internal")]
@@ -101,6 +104,14 @@ public class AppCoinsSDK
         get
         {
             _instance ??= new AppCoinsSDK();
+            Application.deepLinkActivated += (url) =>
+            {
+                _handleDeepLink(url, (json) =>
+                {
+                    Debug.Log("Deep link response: " + json);
+                });
+                Debug.Log("Deep link activated: " + url);
+            };
             return _instance;
         }
     }
