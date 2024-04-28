@@ -12,13 +12,13 @@ public class IsAvailableResponse
 [Serializable]
 public class ProductData
 {
-    public string sku;
-    public string title;
-    public string description;
-    public string priceCurrency;
-    public string priceValue;
-    public string priceLabel;
-    public string priceSymbol;
+    public string Sku;
+    public string Title;
+    public string Description;
+    public string PriceCurrency;
+    public string PriceValue;
+    public string PriceLabel;
+    public string PriceSymbol;
 }
 
 [Serializable]
@@ -30,12 +30,12 @@ public class GetProductsResponse
 [Serializable]
 public class PurchaseData
 {
-    public string uid;
-    public string sku;
-    public string state;
-    public string orderUid;
-    public string payload;
-    public string created;
+    public string UID;
+    public string Sku;
+    public string State;
+    public string OrderUID;
+    public string Payload;
+    public string Created;
 }
 
 [Serializable]

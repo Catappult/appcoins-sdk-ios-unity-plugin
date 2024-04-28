@@ -46,15 +46,15 @@ public class Manager : MonoBehaviour
 
         foreach (var product in selectedProducts)
         {
-            Debug.Log($"Product: {product.sku}, {product.title}, {product.priceValue}, {product.priceCurrency}");
+            Debug.Log($"Product: {product.Sku}, {product.Title}, {product.PriceValue}, {product.PriceCurrency}");
         }
 
         var products = await AppCoinsSDK.Instance.GetProducts();
 
-        foreach (var product in products.OrderBy(p => p.priceValue))
+        foreach (var product in products.OrderBy(p => p.PriceValue))
         {
             var button = Instantiate(buttonPrefab, panel);
-            button.GetComponentInChildren<Text>().text = product.title;
+            button.GetComponentInChildren<Text>().text = product.Title;
             button.GetComponent<Button>().onClick.AddListener(() => HandlePurchaseClick(product));
         }
 
@@ -64,14 +64,14 @@ public class Manager : MonoBehaviour
 
         foreach (var purchase in purchases)
         {
-            purchasesText.text += purchase.sku + " - " + this.GetPurchaseStateLabel(purchase.state) + "\n";
+            purchasesText.text += purchase.Created + ": " +  purchase.Sku + " - " + this.GetPurchaseStateLabel(purchase.State) + "\n";
         }
 
         var latestPurchase = await AppCoinsSDK.Instance.GetLatestPurchase("it.megasoft78.wordsjungle.small_pack_coins_almost_free");
 
         if (latestPurchase != null)
         {
-            Debug.Log("Latest purchase: " + latestPurchase.sku + " - " + this.GetPurchaseStateLabel(latestPurchase.state));
+            Debug.Log("Latest purchase: " + latestPurchase.Sku + " - " + this.GetPurchaseStateLabel(latestPurchase.State));
         }
 
         var unfinishedPurchases = await AppCoinsSDK.Instance.GetUnfinishedPurchases();
@@ -80,8 +80,8 @@ public class Manager : MonoBehaviour
 
         foreach (var purchase in unfinishedPurchases)
         {
-            Debug.Log("Finishing purchase: " + purchase.sku);
-            var response = await AppCoinsSDK.Instance.FinishPurchase(purchase.sku);
+            Debug.Log("Finishing purchase: " + purchase.Sku);
+            var response = await AppCoinsSDK.Instance.FinishPurchase(purchase.Sku);
 
             if (response.Success)
             {
@@ -96,22 +96,22 @@ public class Manager : MonoBehaviour
 
     public async void HandlePurchaseClick(ProductData product)
     {
-        Debug.Log("HandlePurchaseClick: " + product.sku);
-        var purchaseResponse = await AppCoinsSDK.Instance.Purchase(product.sku);
+        Debug.Log("HandlePurchaseClick: " + product.Sku);
+        var purchaseResponse = await AppCoinsSDK.Instance.Purchase(product.Sku);
         Debug.Log("Purchase state: " + purchaseResponse.State + ", error message: " + purchaseResponse.Error);
 
-        // if (purchaseResponse.State == AppCoinsSDK.PURCHASE_STATE_SUCCESS)
-        // {
-        //     var response = await AppCoinsSDK.Instance.FinishPurchase(purchaseResponse.PurchaseSku);
+        if (purchaseResponse.State == AppCoinsSDK.PURCHASE_STATE_SUCCESS)
+        {
+            var response = await AppCoinsSDK.Instance.FinishPurchase(purchaseResponse.PurchaseSku);
 
-        //     if (response.Success)
-        //     {
-        //         Debug.Log("Purchase finished successfully");
-        //     }
-        //     else
-        //     {
-        //         Debug.Log("Error finishing purchase: " + response.Error);
-        //     }
-        // }
+            if (response.Success)
+            {
+                Debug.Log("Purchase finished successfully");
+            }
+            else
+            {
+                Debug.Log("Error finishing purchase: " + response.Error);
+            }
+        }
     }
 }

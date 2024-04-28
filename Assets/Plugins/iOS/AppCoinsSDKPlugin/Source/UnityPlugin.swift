@@ -14,13 +14,13 @@ public struct ProductData {
 extension ProductData {
     var dictionaryRepresentation: [String: Any] {
         var dict = [String: Any]()
-        dict["sku"] = sku
-        dict["title"] = title
-        dict["description"] = description
-        dict["priceCurrency"] = priceCurrency
-        dict["priceValue"] = priceValue
-        dict["priceLabel"] = priceLabel
-        dict["priceSymbol"] = priceSymbol
+        dict["Sku"] = sku
+        dict["Title"] = title
+        dict["Description"] = description
+        dict["PriceCurrency"] = priceCurrency
+        dict["PriceValue"] = priceValue
+        dict["PriceLabel"] = priceLabel
+        dict["PriceSymbol"] = priceSymbol
         return dict
     }
 }
@@ -37,12 +37,12 @@ public struct PurchaseData {
 extension PurchaseData {
     var dictionaryRepresentation: [String: Any] {
         var dict = [String: Any]()
-        dict["uid"] = uid
-        dict["sku"] = sku
-        dict["state"] = state
-        dict["orderUid"] = orderUid
-        dict["payload"] = payload
-        dict["created"] = created
+        dict["UID"] = uid
+        dict["Sku"] = sku
+        dict["State"] = state
+        dict["OrderUID"] = orderUid
+        dict["Payload"] = payload
+        dict["Created"] = created
         return dict
     }
 }
