@@ -23,7 +23,7 @@ Now that you have imported the plugin you can start making use of its functional
    
    if (sdkAvailable)
    {
-   	// make purchase
+   // make purchase
    }
    ```
 
