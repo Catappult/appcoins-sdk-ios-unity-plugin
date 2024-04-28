@@ -98,22 +98,24 @@ extension PurchaseData {
             
             var state = ""
             var errorMessage = ""
+            var purchaseSku = ""
             
             switch result {
                 case .success(let verificationResult):
                      switch verificationResult {
                            case .verified(let purchase):
                                 state = "success"
-                                try await purchase.finish()
+                                purchaseSku = purchase.sku
                            case .unverified(let purchase, let verificationError):
                                 state = "unverified"
                                 errorMessage = verificationError.localizedDescription
+                                purchaseSku = purchase.sku
                                 
                      }
                 case .pending:
                     state = "pending"
                 case .userCancelled:
-                    state = "userCancelled"
+                    state = "user_cancelled"
                 case .failed(let error):
                     state = "failed"
                     errorMessage = error.localizedDescription
@@ -121,7 +123,7 @@ extension PurchaseData {
                 state = "none"
             }
             
-            let dictionaryRepresentation = ["state": state, "error": errorMessage ]
+            let dictionaryRepresentation = ["State": state, "Error": errorMessage, "PurchaseSku": purchaseSku ]
             completion(dictionaryRepresentation)
         }
     }
@@ -154,8 +156,8 @@ extension PurchaseData {
     @objc public func getLatestPurchase(sku: String, completion: @escaping ([String: Any]) -> Void) {
         Task {
             do {
-                    var purchase = try await Purchase.latest(sku: sku)
-                    var purchaseItem = PurchaseData(
+                    let purchase = try await Purchase.latest(sku: sku)
+                    let purchaseItem = PurchaseData(
                         uid: purchase?.uid ?? "",
                             sku: purchase?.sku ?? "",
                             state: purchase?.state ?? "",
@@ -172,7 +174,6 @@ extension PurchaseData {
 
     @objc public func getUnfinishedPurchases(completion: @escaping ([[String: Any]]) -> Void) {
         Task {
-            var purchases = [Purchase]()
             var purchaseItems = [PurchaseData]()
             
             do {
@@ -193,6 +194,26 @@ extension PurchaseData {
             
             let arrayOfDictionaries = purchaseItems.map { $0.dictionaryRepresentation }
             completion(arrayOfDictionaries)
+        }
+    }
+
+    @objc public func finishPurchase(sku: String, completion: @escaping ([String: Any]) -> Void) {
+        Task {
+            do {
+                let unfinishedPurchases = try await Purchase.unfinished()
+                
+                if let purchaseToFinish = unfinishedPurchases.first(where: { $0.sku == sku }) {
+                    try await purchaseToFinish.finish()
+                    let dictionaryRepresentation = ["Success": true, "Error": ""]
+                    completion(dictionaryRepresentation)
+                } else {
+                    let dictionaryRepresentation = ["Success": false, "Error": "No unfinished purchase found for the given SKU."]
+                    completion(dictionaryRepresentation)
+                }
+            } catch {
+                let dictionaryRepresentation = ["Success": false, "Error": "An error occurred: \(error.localizedDescription)"]
+                completion(dictionaryRepresentation)
+            }
         }
     }
 }

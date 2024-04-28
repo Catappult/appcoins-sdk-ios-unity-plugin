@@ -47,8 +47,16 @@ public class GetPurchasesResponse
 [Serializable]
 public class PurchaseResponse
 {
-    public string state;
-    public string error;
+    public string State;
+    public string Error;
+    public string PurchaseSku;
+}
+
+[Serializable]
+public class FinishPurchaseResponse
+{
+    public bool Success;
+    public string Error;
 }
 
 public class AppCoinsSDK
@@ -56,6 +64,12 @@ public class AppCoinsSDK
     public const string PURCHASE_PENDING = "PENDING";
     public const string PURCHASE_ACKNOWLEDGED = "ACKNOWLEDGED";
     public const string PURCHASE_CONSUMED = "CONSUMED";
+
+    public const string PURCHASE_STATE_SUCCESS = "success";
+    public const string PURCHASE_STATE_UNVERIFIED = "unverified";
+    public const string PURCHASE_STATE_USER_CANCELLED = "user_cancelled";
+    public const string PURCHASE_STATE_FAILED = "failed";
+
 
     private static AppCoinsSDK _instance;
     private delegate void JsonCallback(string result);
@@ -77,6 +91,9 @@ public class AppCoinsSDK
 
     [DllImport("__Internal")]
     private static extern void _getUnfinishedPurchases(JsonCallback callback);
+
+    [DllImport("__Internal")]
+    private static extern void _finishPurchase(string sku, JsonCallback callback);
 
     public static AppCoinsSDK Instance
     {
@@ -148,8 +165,8 @@ public class AppCoinsSDK
 #else
         return await Task.FromResult(new PurchaseResponse
         {
-            state = "error",
-            error = "AppCoins SDK is not available."
+            State = "error",
+            Error = "AppCoins SDK is not available."
         });
 #endif
     }
@@ -189,7 +206,6 @@ public class AppCoinsSDK
 
     #endregion
 
-
     #region Get Latest Purchase
     private TaskCompletionSource<PurchaseData> _tcsGetLatestPurchase;
     public async Task<PurchaseData> GetLatestPurchase(string sku)
@@ -214,7 +230,6 @@ public class AppCoinsSDK
 
     #endregion
 
-
     #region Get Unfinished Purchases
     private TaskCompletionSource<PurchaseData[]> _tcsGetUnfinishedPurchases;
     public async Task<PurchaseData[]> GetUnfinishedPurchases()
@@ -238,4 +253,35 @@ public class AppCoinsSDK
 #endif
 
     #endregion
+
+    #region Finish Purchase
+    private TaskCompletionSource<FinishPurchaseResponse> _tcsFinishPurchase;
+    public async Task<FinishPurchaseResponse> FinishPurchase(string sku)
+    {
+#if UNITY_IOS && !UNITY_EDITOR
+        this._tcsFinishPurchase = new TaskCompletionSource<FinishPurchaseResponse>();
+        _finishPurchase(sku, OnFinishPurchaseCompleted);
+        return await this._tcsFinishPurchase.Task;        
+#else
+        return await Task.FromResult(new FinishPurchaseResponse
+        {
+            Success = false,
+            Error = "AppCoins SDK is not available."
+        });
+#endif
+    }
+
+#if UNITY_IOS && !UNITY_EDITOR
+    [AOT.MonoPInvokeCallback(typeof(JsonCallback))]
+    private static void OnFinishPurchaseCompleted(string json)
+    {
+        var response = JsonUtility.FromJson<FinishPurchaseResponse>(json);
+        Instance._tcsFinishPurchase.SetResult(response);
+    }
+#endif
+
+    #endregion
+
 }
+
+

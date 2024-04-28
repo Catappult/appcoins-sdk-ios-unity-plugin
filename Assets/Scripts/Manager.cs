@@ -80,7 +80,17 @@ public class Manager : MonoBehaviour
 
         foreach (var purchase in unfinishedPurchases)
         {
-            Debug.Log(purchase.sku + " - " + this.GetPurchaseStateLabel(purchase.state));
+            Debug.Log("Finishing purchase: " + purchase.sku);
+            var response = await AppCoinsSDK.Instance.FinishPurchase(purchase.sku);
+
+            if (response.Success)
+            {
+                Debug.Log("Purchase finished successfully");
+            }
+            else
+            {
+                Debug.Log("Error finishing purchase: " + response.Error);
+            }
         }
     }
 
@@ -88,6 +98,20 @@ public class Manager : MonoBehaviour
     {
         Debug.Log("HandlePurchaseClick: " + product.sku);
         var purchaseResponse = await AppCoinsSDK.Instance.Purchase(product.sku);
-        Debug.Log("Purchase state: " + purchaseResponse.state + ", error message: " + purchaseResponse.error);
+        Debug.Log("Purchase state: " + purchaseResponse.State + ", error message: " + purchaseResponse.Error);
+
+        // if (purchaseResponse.State == AppCoinsSDK.PURCHASE_STATE_SUCCESS)
+        // {
+        //     var response = await AppCoinsSDK.Instance.FinishPurchase(purchaseResponse.PurchaseSku);
+
+        //     if (response.Success)
+        //     {
+        //         Debug.Log("Purchase finished successfully");
+        //     }
+        //     else
+        //     {
+        //         Debug.Log("Error finishing purchase: " + response.Error);
+        //     }
+        // }
     }
 }
