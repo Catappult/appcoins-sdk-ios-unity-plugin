@@ -52,6 +52,7 @@ public static class SwiftPostProcess
             AddStoreKitExternalPurchaseCapabilityCountries(buildPath);
             AddSDKUrlType(buildPath);
             AddWalletQueriedUrlScheme(buildPath);
+            AddCFBundleAllowMixedLocalizations(buildPath);
         }
     }
 
@@ -122,6 +123,15 @@ public static class SwiftPostProcess
         var lsApplicationQueriesSchemes = plistInfo.root.CreateArray("LSApplicationQueriesSchemes");
         lsApplicationQueriesSchemes.AddString("com.aptoide.appcoins-wallet");
 
+        plistInfo.WriteToFile(plistInfoPath);
+    }
+
+    static void AddCFBundleAllowMixedLocalizations(string buildPath)
+    {
+        string plistInfoPath = Path.Combine(buildPath, "Info.plist");
+        PlistDocument plistInfo = new();
+        plistInfo.ReadFromFile(plistInfoPath);
+        plistInfo.root.SetBoolean("CFBundleAllowMixedLocalizations", true);
         plistInfo.WriteToFile(plistInfoPath);
     }
 }

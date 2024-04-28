@@ -50,6 +50,7 @@ public class PurchaseResponse
     public string State;
     public string Error;
     public string PurchaseSku;
+    public string Payload;
 }
 
 [Serializable]
@@ -81,7 +82,7 @@ public class AppCoinsSDK
     private static extern void _getProducts(string[] skus, int count, JsonCallback callback);
 
     [DllImport("__Internal")]
-    private static extern void _purchase(string sku, JsonCallback callback);
+    private static extern void _purchase(string sku, string payload, JsonCallback callback);
 
     [DllImport("__Internal")]
     private static extern void _getAllPurchases(JsonCallback callback);
@@ -156,11 +157,11 @@ public class AppCoinsSDK
 
     #region Purchase
     private TaskCompletionSource<PurchaseResponse> _tcsPurchase;
-    public async Task<PurchaseResponse> Purchase(string sku)
+    public async Task<PurchaseResponse> Purchase(string sku, string payload = "")
     {
 #if UNITY_IOS && !UNITY_EDITOR
         this._tcsPurchase = new TaskCompletionSource<PurchaseResponse>();
-        _purchase(sku, OnPurchaseCompleted);
+        _purchase(sku, payload, OnPurchaseCompleted);
         return await this._tcsPurchase.Task;        
 #else
         return await Task.FromResult(new PurchaseResponse

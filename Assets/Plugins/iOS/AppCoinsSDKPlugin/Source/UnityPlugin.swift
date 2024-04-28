@@ -91,14 +91,15 @@ extension PurchaseData {
         }
     }
 
-    @objc public func purchase(sku: String, completion: @escaping ([String: Any]) -> Void) {
+    @objc public func purchase(sku: String, payload: String, completion: @escaping ([String: Any]) -> Void) {
         Task {
             let products = try await Product.products(for: [sku])
-            let result = await products.first?.purchase()
+            let result = await products.first?.purchase(payload: payload)
             
             var state = ""
             var errorMessage = ""
             var purchaseSku = ""
+            var payload = ""
             
             switch result {
                 case .success(let verificationResult):
@@ -106,6 +107,7 @@ extension PurchaseData {
                            case .verified(let purchase):
                                 state = "success"
                                 purchaseSku = purchase.sku
+                                payload = purchase.payload ?? ""
                            case .unverified(let purchase, let verificationError):
                                 state = "unverified"
                                 errorMessage = verificationError.localizedDescription
@@ -123,7 +125,7 @@ extension PurchaseData {
                 state = "none"
             }
             
-            let dictionaryRepresentation = ["State": state, "Error": errorMessage, "PurchaseSku": purchaseSku ]
+            let dictionaryRepresentation = ["State": state, "Error": errorMessage, "PurchaseSku": purchaseSku, "Payload": payload ]
             completion(dictionaryRepresentation)
         }
     }

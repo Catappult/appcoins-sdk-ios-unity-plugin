@@ -47,8 +47,8 @@ public class Manager : MonoBehaviour
             }
 
             var products = await AppCoinsSDK.Instance.GetProducts();
-
-            DisplayProducts(products.OrderBy(p => p.PriceValue).ToArray());
+            var sortedProductsByPrice = products.OrderBy(p => p.PriceValue).ToArray();
+            DisplayProducts(sortedProductsByPrice);
 
             var purchases = await AppCoinsSDK.Instance.GetAllPurchases();
 
@@ -157,8 +157,8 @@ public class Manager : MonoBehaviour
     public async void HandlePurchaseClick(ProductData product)
     {
         Debug.Log("HandlePurchaseClick: " + product.Sku);
-        var purchaseResponse = await AppCoinsSDK.Instance.Purchase(product.Sku);
-        Debug.Log("Purchase state: " + purchaseResponse.State + ", error message: " + purchaseResponse.Error);
+        var purchaseResponse = await AppCoinsSDK.Instance.Purchase(product.Sku, "User123");
+        Debug.Log("Purchase state: " + purchaseResponse.State + ", payload: " + purchaseResponse.Payload + ", error message: " + purchaseResponse.Error);
 
         if (purchaseResponse.State == AppCoinsSDK.PURCHASE_STATE_SUCCESS)
         {
