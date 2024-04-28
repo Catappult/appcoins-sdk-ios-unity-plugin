@@ -197,17 +197,17 @@ extension PurchaseData {
         }
     }
 
-    @objc public func finishPurchase(sku: String, completion: @escaping ([String: Any]) -> Void) {
+    @objc public func consumePurchase(sku: String, completion: @escaping ([String: Any]) -> Void) {
         Task {
             do {
-                let unfinishedPurchases = try await Purchase.unfinished()
+                let purchases = try await Purchase.all()
                 
-                if let purchaseToFinish = unfinishedPurchases.first(where: { $0.sku == sku }) {
-                    try await purchaseToFinish.finish()
+                if let purchaseToConsume = purchases.first(where: { $0.sku == sku && $0.state == "ACKNOWLEDGED" }) {
+                    try await purchaseToConsume.finish()
                     let dictionaryRepresentation = ["Success": true, "Error": ""]
                     completion(dictionaryRepresentation)
                 } else {
-                    let dictionaryRepresentation = ["Success": false, "Error": "No unfinished purchase found for the given SKU."]
+                    let dictionaryRepresentation = ["Success": false, "Error": "No purchase to consume found for the given SKU."]
                     completion(dictionaryRepresentation)
                 }
             } catch {

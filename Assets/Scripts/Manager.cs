@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -47,21 +48,33 @@ public class Manager : MonoBehaviour
 
             var products = await AppCoinsSDK.Instance.GetProducts();
 
-            foreach (var product in products.OrderBy(p => p.PriceValue))
-            {
-                var button = Instantiate(buttonPrefab, panel);
-                button.GetComponentInChildren<Text>().text = product.Title;
-                button.GetComponent<Button>().onClick.AddListener(() => HandlePurchaseClick(product));
-            }
+            DisplayProducts(products.OrderBy(p => p.PriceValue).ToArray());
 
             var purchases = await AppCoinsSDK.Instance.GetAllPurchases();
 
-            purchasesText.text = "Purchases:\n";
+            var unconsumedPurchases = purchases.Where(p => p.State == AppCoinsSDK.PURCHASE_ACKNOWLEDGED).ToArray();
 
-            foreach (var purchase in purchases)
+            foreach (var purchase in unconsumedPurchases)
             {
-                purchasesText.text += purchase.Created + ": " + purchase.Sku + " - " + this.GetPurchaseStateLabel(purchase.State) + "\n";
+                Debug.Log("Consuming purchase: " + purchase.Sku);
+                var response = await AppCoinsSDK.Instance.ConsumePurchase(purchase.Sku);
+
+                if (response.Success)
+                {
+                    Debug.Log("Purchase consumed successfully");
+                }
+                else
+                {
+                    Debug.Log("Error consuming purchase: " + response.Error);
+                }
             }
+
+            if (unconsumedPurchases.Length > 0)
+            {
+                purchases = await AppCoinsSDK.Instance.GetAllPurchases();
+            }
+
+            DisplayPurchases(purchases);
 
             var latestPurchase = await AppCoinsSDK.Instance.GetLatestPurchase("it.megasoft78.wordsjungle.small_pack_coins_almost_free");
 
@@ -76,17 +89,7 @@ public class Manager : MonoBehaviour
 
             foreach (var purchase in unfinishedPurchases)
             {
-                Debug.Log("Finishing purchase: " + purchase.Sku);
-                var response = await AppCoinsSDK.Instance.FinishPurchase(purchase.Sku);
-
-                if (response.Success)
-                {
-                    Debug.Log("Purchase finished successfully");
-                }
-                else
-                {
-                    Debug.Log("Error finishing purchase: " + response.Error);
-                }
+                Debug.Log(purchase.Sku + " - " + this.GetPurchaseStateLabel(purchase.State));
             }
         }
         else
@@ -95,7 +98,7 @@ public class Manager : MonoBehaviour
 
             var products = new List<ProductData>();
 
-            for (int i = 0; i < 6; i++)
+            for (int i = 0; i < 8; i++)
             {
                 products.Add(new ProductData
                 {
@@ -109,12 +112,45 @@ public class Manager : MonoBehaviour
                 });
             };
 
-            foreach (var product in products.OrderBy(p => p.PriceValue))
+            DisplayProducts(products.ToArray());
+
+            var purchases = new List<PurchaseData>();
+
+            for (int i = 0; i < 20; i++)
             {
-                var button = Instantiate(buttonPrefab, panel);
-                button.GetComponentInChildren<Text>().text = product.Title;
-                button.GetComponent<Button>().onClick.AddListener(() => HandlePurchaseClick(product));
+                purchases.Add(new PurchaseData
+                {
+                    UID = $"purchase_{i + 1}",
+                    Sku = $"com.example.coins_{i + 1}00",
+                    State = AppCoinsSDK.PURCHASE_ACKNOWLEDGED,
+                    OrderUID = $"order_{i + 1}",
+                    Payload = $"payload_{i + 1}",
+                    Created = System.DateTime.Now.ToString()
+                });
             }
+
+            DisplayPurchases(purchases.ToArray());
+        }
+    }
+
+    public void DisplayProducts(ProductData[] products)
+    {
+        foreach (var product in products)
+        {
+            var button = Instantiate(buttonPrefab, panel);
+            button.GetComponentInChildren<Text>().text = product.Title;
+            button.GetComponent<Button>().onClick.AddListener(() => HandlePurchaseClick(product));
+        }
+    }
+
+    public void DisplayPurchases(PurchaseData[] purchases)
+    {
+        purchasesText.text = "Purchases:\n";
+
+        foreach (var purchase in purchases)
+        {
+            var created = DateTime.Parse(purchase.Created);
+            purchasesText.text += created.ToString("yyyy-MM-dd HH:mm:ss") + " => " + purchase.Sku + " - " + this.GetPurchaseStateLabel(purchase.State) + "\n";
         }
     }
 
@@ -126,15 +162,15 @@ public class Manager : MonoBehaviour
 
         if (purchaseResponse.State == AppCoinsSDK.PURCHASE_STATE_SUCCESS)
         {
-            var response = await AppCoinsSDK.Instance.FinishPurchase(purchaseResponse.PurchaseSku);
+            var response = await AppCoinsSDK.Instance.ConsumePurchase(purchaseResponse.PurchaseSku);
 
             if (response.Success)
             {
-                Debug.Log("Purchase finished successfully");
+                Debug.Log("Purchase consumed successfully");
             }
             else
             {
-                Debug.Log("Error finishing purchase: " + response.Error);
+                Debug.Log("Error consuming purchase: " + response.Error);
             }
         }
     }

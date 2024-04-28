@@ -53,7 +53,7 @@ public class PurchaseResponse
 }
 
 [Serializable]
-public class FinishPurchaseResponse
+public class ConsumePurchaseResponse
 {
     public bool Success;
     public string Error;
@@ -93,7 +93,7 @@ public class AppCoinsSDK
     private static extern void _getUnfinishedPurchases(JsonCallback callback);
 
     [DllImport("__Internal")]
-    private static extern void _finishPurchase(string sku, JsonCallback callback);
+    private static extern void _consumePurchase(string sku, JsonCallback callback);
 
     public static AppCoinsSDK Instance
     {
@@ -254,16 +254,16 @@ public class AppCoinsSDK
 
     #endregion
 
-    #region Finish Purchase
-    private TaskCompletionSource<FinishPurchaseResponse> _tcsFinishPurchase;
-    public async Task<FinishPurchaseResponse> FinishPurchase(string sku)
+    #region Consume Purchase
+    private TaskCompletionSource<ConsumePurchaseResponse> _tcsConsumePurchase;
+    public async Task<ConsumePurchaseResponse> ConsumePurchase(string sku)
     {
 #if UNITY_IOS && !UNITY_EDITOR
-        this._tcsFinishPurchase = new TaskCompletionSource<FinishPurchaseResponse>();
-        _finishPurchase(sku, OnFinishPurchaseCompleted);
-        return await this._tcsFinishPurchase.Task;        
+        this._tcsConsumePurchase = new TaskCompletionSource<ConsumePurchaseResponse>();
+        _consumePurchase(sku, OnConsumePurchaseCompleted);
+        return await this._tcsConsumePurchase.Task;        
 #else
-        return await Task.FromResult(new FinishPurchaseResponse
+        return await Task.FromResult(new ConsumePurchaseResponse
         {
             Success = false,
             Error = "AppCoins SDK is not available."
@@ -273,10 +273,10 @@ public class AppCoinsSDK
 
 #if UNITY_IOS && !UNITY_EDITOR
     [AOT.MonoPInvokeCallback(typeof(JsonCallback))]
-    private static void OnFinishPurchaseCompleted(string json)
+    private static void OnConsumePurchaseCompleted(string json)
     {
-        var response = JsonUtility.FromJson<FinishPurchaseResponse>(json);
-        Instance._tcsFinishPurchase.SetResult(response);
+        var response = JsonUtility.FromJson<ConsumePurchaseResponse>(json);
+        Instance._tcsConsumePurchase.SetResult(response);
     }
 #endif
 

@@ -128,10 +128,10 @@ extern "C" {
         }];
     }
 
-    void _finishPurchase(const char *sku, JsonCallback callback) {
+    void _consumePurchase(const char *sku, JsonCallback callback) {
         NSString *skuString = [NSString stringWithUTF8String:sku];
         
-        [UnityPlugin.shared finishPurchaseWithSku:skuString completion:^(NSDictionary *data) {
+        [UnityPlugin.shared consumePurchaseWithSku:skuString completion:^(NSDictionary *data) {
             NSError *error = nil;
             NSData *jsonData = [NSJSONSerialization dataWithJSONObject:data options:0 error:&error];
             if (!jsonData) {
