@@ -13,7 +13,7 @@ Please import the plugin using latest version from the [GitHub releases page](ht
 
 ### Implementation
 
-Now that you have the SDK and necessary permissions set-up you can start making use of its functionalities. To do so you must import the SDK module in any files you want to use it by calling the following: `import AppCoinsSDK`.
+Now that you have imported the SDK you can start making use of its functionalities.
 
 1. **Check AppCoins SDK Availability**  
    The AppCoins SDK will only be available on devices in the European Union with an iOS version equal to or higher than 17.4. Therefore, before attempting any purchase, you should check if the SDK is available by calling `AppCoinsSDK.Instance.IsAvailable()`.
