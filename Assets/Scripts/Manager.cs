@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
@@ -34,62 +35,85 @@ public class Manager : MonoBehaviour
         if (sdkAvailable)
         {
             sdkStatusText.text = "Available";
+
+            var selectedProducts = await AppCoinsSDK.Instance.GetProducts(new string[] { "it.megasoft78.wordsjungle.remove_ads", "it.megasoft78.wordsjungle.small_pack_coins" });
+
+            Debug.Log("Selected products:");
+
+            foreach (var product in selectedProducts)
+            {
+                Debug.Log($"Product: {product.Sku}, {product.Title}, {product.PriceValue}, {product.PriceCurrency}");
+            }
+
+            var products = await AppCoinsSDK.Instance.GetProducts();
+
+            foreach (var product in products.OrderBy(p => p.PriceValue))
+            {
+                var button = Instantiate(buttonPrefab, panel);
+                button.GetComponentInChildren<Text>().text = product.Title;
+                button.GetComponent<Button>().onClick.AddListener(() => HandlePurchaseClick(product));
+            }
+
+            var purchases = await AppCoinsSDK.Instance.GetAllPurchases();
+
+            purchasesText.text = "Purchases:\n";
+
+            foreach (var purchase in purchases)
+            {
+                purchasesText.text += purchase.Created + ": " + purchase.Sku + " - " + this.GetPurchaseStateLabel(purchase.State) + "\n";
+            }
+
+            var latestPurchase = await AppCoinsSDK.Instance.GetLatestPurchase("it.megasoft78.wordsjungle.small_pack_coins_almost_free");
+
+            if (latestPurchase != null)
+            {
+                Debug.Log("Latest purchase: " + latestPurchase.Sku + " - " + this.GetPurchaseStateLabel(latestPurchase.State));
+            }
+
+            var unfinishedPurchases = await AppCoinsSDK.Instance.GetUnfinishedPurchases();
+
+            Debug.Log("Unfinished purchases:");
+
+            foreach (var purchase in unfinishedPurchases)
+            {
+                Debug.Log("Finishing purchase: " + purchase.Sku);
+                var response = await AppCoinsSDK.Instance.FinishPurchase(purchase.Sku);
+
+                if (response.Success)
+                {
+                    Debug.Log("Purchase finished successfully");
+                }
+                else
+                {
+                    Debug.Log("Error finishing purchase: " + response.Error);
+                }
+            }
         }
         else
         {
             sdkStatusText.text = "Not Available";
-        }
 
-        var selectedProducts = await AppCoinsSDK.Instance.GetProducts(new string[] { "it.megasoft78.wordsjungle.remove_ads", "it.megasoft78.wordsjungle.small_pack_coins" });
+            var products = new List<ProductData>();
 
-        Debug.Log("Selected products:");
-
-        foreach (var product in selectedProducts)
-        {
-            Debug.Log($"Product: {product.Sku}, {product.Title}, {product.PriceValue}, {product.PriceCurrency}");
-        }
-
-        var products = await AppCoinsSDK.Instance.GetProducts();
-
-        foreach (var product in products.OrderBy(p => p.PriceValue))
-        {
-            var button = Instantiate(buttonPrefab, panel);
-            button.GetComponentInChildren<Text>().text = product.Title;
-            button.GetComponent<Button>().onClick.AddListener(() => HandlePurchaseClick(product));
-        }
-
-        var purchases = await AppCoinsSDK.Instance.GetAllPurchases();
-
-         purchasesText.text = "Purchases:\n";
-
-        foreach (var purchase in purchases)
-        {
-            purchasesText.text += purchase.Created + ": " +  purchase.Sku + " - " + this.GetPurchaseStateLabel(purchase.State) + "\n";
-        }
-
-        var latestPurchase = await AppCoinsSDK.Instance.GetLatestPurchase("it.megasoft78.wordsjungle.small_pack_coins_almost_free");
-
-        if (latestPurchase != null)
-        {
-            Debug.Log("Latest purchase: " + latestPurchase.Sku + " - " + this.GetPurchaseStateLabel(latestPurchase.State));
-        }
-
-        var unfinishedPurchases = await AppCoinsSDK.Instance.GetUnfinishedPurchases();
-
-        Debug.Log("Unfinished purchases:");
-
-        foreach (var purchase in unfinishedPurchases)
-        {
-            Debug.Log("Finishing purchase: " + purchase.Sku);
-            var response = await AppCoinsSDK.Instance.FinishPurchase(purchase.Sku);
-
-            if (response.Success)
+            for (int i = 0; i < 6; i++)
             {
-                Debug.Log("Purchase finished successfully");
-            }
-            else
+                products.Add(new ProductData
+                {
+                    Sku = $"com.example.coins_{i + 1}00",
+                    Title = $"{i + 1}00 Coins",
+                    Description = $"{i + 1}00 coins to spend in the game",
+                    PriceCurrency = "USD",
+                    PriceValue = "0.99",
+                    PriceLabel = "$0.99",
+                    PriceSymbol = "$"
+                });
+            };
+
+            foreach (var product in products.OrderBy(p => p.PriceValue))
             {
-                Debug.Log("Error finishing purchase: " + response.Error);
+                var button = Instantiate(buttonPrefab, panel);
+                button.GetComponentInChildren<Text>().text = product.Title;
+                button.GetComponent<Button>().onClick.AddListener(() => HandlePurchaseClick(product));
             }
         }
     }
