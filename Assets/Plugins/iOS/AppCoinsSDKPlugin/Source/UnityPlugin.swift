@@ -25,6 +25,28 @@ extension ProductData {
     }
 }
 
+public struct PurchaseData {
+    public let uid: String
+    public let sku: String
+    public var state: String
+    public let orderUid: String
+    public let payload: String?
+    public let created: String
+}
+
+extension PurchaseData {
+    var dictionaryRepresentation: [String: Any] {
+        var dict = [String: Any]()
+        dict["uid"] = uid
+        dict["sku"] = sku
+        dict["state"] = state
+        dict["orderUid"] = orderUid
+        dict["payload"] = payload
+        dict["created"] = created
+        return dict
+    }
+}
+
 @objc public class UnityPlugin : NSObject {
     
     @objc public static let shared = UnityPlugin()
@@ -101,6 +123,76 @@ extension ProductData {
             
             let dictionaryRepresentation = ["state": state, "error": errorMessage ]
             completion(dictionaryRepresentation)
+        }
+    }
+
+    @objc public func getAllPurchases(completion: @escaping ([[String: Any]]) -> Void) {
+        Task {
+            var purchaseItems = [PurchaseData]()
+            
+            do {
+                    let purchases = try await Purchase.all()
+                    purchaseItems = purchases.map { purchase in
+                        PurchaseData(
+                            uid: purchase.uid,
+                            sku: purchase.sku,
+                            state: purchase.state,
+                            orderUid: purchase.orderUid,
+                            payload: purchase.payload,
+                            created: purchase.created
+                        )
+                    }
+            } catch {
+                print("Error")
+            }
+            
+            let arrayOfDictionaries = purchaseItems.map { $0.dictionaryRepresentation }
+            completion(arrayOfDictionaries)
+        }
+    }
+
+    @objc public func getLatestPurchase(sku: String, completion: @escaping ([String: Any]) -> Void) {
+        Task {
+            do {
+                    var purchase = try await Purchase.latest(sku: sku)
+                    var purchaseItem = PurchaseData(
+                        uid: purchase?.uid ?? "",
+                            sku: purchase?.sku ?? "",
+                            state: purchase?.state ?? "",
+                            orderUid: purchase?.orderUid ?? "",
+                            payload: purchase?.payload ?? "",
+                            created: purchase?.created ?? ""
+                        )
+                completion(purchaseItem.dictionaryRepresentation)
+            } catch {
+                print("Error")
+            }
+        }
+    }
+
+    @objc public func getUnfinishedPurchases(completion: @escaping ([[String: Any]]) -> Void) {
+        Task {
+            var purchases = [Purchase]()
+            var purchaseItems = [PurchaseData]()
+            
+            do {
+                    let purchases = try await Purchase.unfinished()
+                    purchaseItems = purchases.map { purchase in
+                        PurchaseData(
+                            uid: purchase.uid,
+                            sku: purchase.sku,
+                            state: purchase.state,
+                            orderUid: purchase.orderUid,
+                            payload: purchase.payload,
+                            created: purchase.created
+                        )
+                    }
+            } catch {
+                print("Error")
+            }
+            
+            let arrayOfDictionaries = purchaseItems.map { $0.dictionaryRepresentation }
+            completion(arrayOfDictionaries)
         }
     }
 }

@@ -28,6 +28,23 @@ public class GetProductsResponse
 }
 
 [Serializable]
+public class PurchaseData
+{
+    public string uid;
+    public string sku;
+    public string state;
+    public string orderUid;
+    public string payload;
+    public string created;
+}
+
+[Serializable]
+public class GetPurchasesResponse
+{
+    public PurchaseData[] Purchases;
+}
+
+[Serializable]
 public class PurchaseResponse
 {
     public string state;
@@ -36,6 +53,10 @@ public class PurchaseResponse
 
 public class AppCoinsSDK
 {
+    public const string PURCHASE_PENDING = "PENDING";
+    public const string PURCHASE_ACKNOWLEDGED = "ACKNOWLEDGED";
+    public const string PURCHASE_CONSUMED = "CONSUMED";
+
     private static AppCoinsSDK _instance;
     private delegate void JsonCallback(string result);
 
@@ -47,6 +68,15 @@ public class AppCoinsSDK
 
     [DllImport("__Internal")]
     private static extern void _purchase(string sku, JsonCallback callback);
+
+    [DllImport("__Internal")]
+    private static extern void _getAllPurchases(JsonCallback callback);
+
+    [DllImport("__Internal")]
+    private static extern void _getLatestPurchase(string sku, JsonCallback callback);
+
+    [DllImport("__Internal")]
+    private static extern void _getUnfinishedPurchases(JsonCallback callback);
 
     public static AppCoinsSDK Instance
     {
@@ -135,4 +165,77 @@ public class AppCoinsSDK
 
     #endregion
 
+    #region Get All Purchases
+    private TaskCompletionSource<PurchaseData[]> _tcsGetAllPurchases;
+    public async Task<PurchaseData[]> GetAllPurchases()
+    {
+#if UNITY_IOS && !UNITY_EDITOR
+        this._tcsGetAllPurchases = new TaskCompletionSource<PurchaseData[]>();
+        _getAllPurchases(OnGetAllPurchasesCompleted);
+        return await this._tcsGetAllPurchases.Task;        
+#else
+        return await Task.FromResult(new PurchaseData[0]);
+#endif
+    }
+
+#if UNITY_IOS && !UNITY_EDITOR
+    [AOT.MonoPInvokeCallback(typeof(JsonCallback))]
+    private static void OnGetAllPurchasesCompleted(string json)
+    {
+        var response = JsonUtility.FromJson<GetPurchasesResponse>("{\"Purchases\":" + json + "}");
+        Instance._tcsGetAllPurchases.SetResult(response.Purchases);
+    }
+#endif
+
+    #endregion
+
+
+    #region Get Latest Purchase
+    private TaskCompletionSource<PurchaseData> _tcsGetLatestPurchase;
+    public async Task<PurchaseData> GetLatestPurchase(string sku)
+    {
+#if UNITY_IOS && !UNITY_EDITOR
+        this._tcsGetLatestPurchase = new TaskCompletionSource<PurchaseData>();
+        _getLatestPurchase(sku, OnGetLatestPurchaseCompleted);
+        return await this._tcsGetLatestPurchase.Task;        
+#else
+        return await Task.FromResult(new PurchaseData());
+#endif
+    }
+
+#if UNITY_IOS && !UNITY_EDITOR
+    [AOT.MonoPInvokeCallback(typeof(JsonCallback))]
+    private static void OnGetLatestPurchaseCompleted(string json)
+    {
+        var response = JsonUtility.FromJson<PurchaseData>(json);
+        Instance._tcsGetLatestPurchase.SetResult(response);
+    }
+#endif
+
+    #endregion
+
+
+    #region Get Unfinished Purchases
+    private TaskCompletionSource<PurchaseData[]> _tcsGetUnfinishedPurchases;
+    public async Task<PurchaseData[]> GetUnfinishedPurchases()
+    {
+#if UNITY_IOS && !UNITY_EDITOR
+        this._tcsGetUnfinishedPurchases = new TaskCompletionSource<PurchaseData[]>();
+        _getUnfinishedPurchases(OnGetUnfinishedPurchasesCompleted);
+        return await this._tcsGetUnfinishedPurchases.Task;        
+#else
+        return await Task.FromResult(new PurchaseData[0]);
+#endif
+    }
+
+#if UNITY_IOS && !UNITY_EDITOR
+    [AOT.MonoPInvokeCallback(typeof(JsonCallback))]
+    private static void OnGetUnfinishedPurchasesCompleted(string json)
+    {
+        var response = JsonUtility.FromJson<GetPurchasesResponse>("{\"Purchases\":" + json + "}");
+        Instance._tcsGetUnfinishedPurchases.SetResult(response.Purchases);
+    }
+#endif
+
+    #endregion
 }
