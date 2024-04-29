@@ -4,7 +4,7 @@ The AppCoins SDK for Unity / iOS is a wrapper over [AppCoins SDK for iOS](https:
 
 ## Tested on
 
-- Unity 2022.3.22f1.
+- Unity 2022.3.26f1.
 - iOS 17.4.
 
 ## Download
