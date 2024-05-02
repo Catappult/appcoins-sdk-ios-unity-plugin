@@ -99,7 +99,7 @@ extension PurchaseData {
                                         )
                                     }
             } catch {
-                print("Error")
+                print("Error: \(error)")
             }
             
             let arrayOfDictionaries = productItems.map { $0.dictionaryRepresentation }
@@ -110,7 +110,9 @@ extension PurchaseData {
     @objc public func purchase(sku: String, payload: String, completion: @escaping ([String: Any]) -> Void) {
         Task {
             let products = try await Product.products(for: [sku])
-            let result = await products.first?.purchase(payload: payload)
+
+            let payloadToSend = payload.isEmpty ? nil : payload
+            let result = await products.first?.purchase(payload: payloadToSend)
             
             var state = ""
             var errorMessage = ""
@@ -137,6 +139,7 @@ extension PurchaseData {
                 case .failed(let error):
                     state = "failed"
                     errorMessage = error.localizedDescription
+                    print("errorMessage: \(errorMessage)")
             case .none:
                 state = "none"
             }
