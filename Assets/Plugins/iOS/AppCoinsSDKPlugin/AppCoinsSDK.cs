@@ -104,16 +104,21 @@ public class AppCoinsSDK
         get
         {
             _instance ??= new AppCoinsSDK();
-            Application.deepLinkActivated += (url) =>
-            {
-                _handleDeepLink(url, (json) =>
-                {
-                    Debug.Log("Deep link response: " + json);
-                });
-                Debug.Log("Deep link activated: " + url);
-            };
+            Application.deepLinkActivated += HandleDeepLinkActivated;
             return _instance;
         }
+    }
+
+    private static void HandleDeepLinkActivated(string url)
+    {
+        _handleDeepLink(url, HandleDeepLinkResponse);
+        Debug.Log("Deep link activated: " + url);
+    }
+
+    [AOT.MonoPInvokeCallback(typeof(JsonCallback))]
+    private static void HandleDeepLinkResponse(string json)
+    {
+        Debug.Log("Deep link response: " + json);
     }
 
     #region Is Available
