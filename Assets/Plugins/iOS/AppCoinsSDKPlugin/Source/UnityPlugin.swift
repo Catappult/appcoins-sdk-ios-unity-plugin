@@ -237,4 +237,8 @@ extension PurchaseData {
             }
         }
     }
+    
+    @objc public func getTestingWalletAddress() -> String? {
+        return Sandbox.getTestingWalletAddress()
+    }
 }

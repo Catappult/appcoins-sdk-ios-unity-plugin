@@ -170,4 +170,13 @@ extern "C" {
             }
         }];
     }
+
+    const char * _Nullable _getTestingWalletAddress() {
+        NSString *address = [UnityPlugin.shared getTestingWalletAddress];
+        if (address) {
+            return [address UTF8String];
+        } else {
+            return NULL;
+        }
+    }
 }

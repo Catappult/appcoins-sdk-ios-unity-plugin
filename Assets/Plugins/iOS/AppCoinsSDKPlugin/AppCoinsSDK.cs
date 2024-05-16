@@ -99,6 +99,9 @@ public class AppCoinsSDK
     [DllImport("__Internal")]
     private static extern void _consumePurchase(string sku, JsonCallback callback);
 
+    [DllImport("__Internal")]
+    private static extern IntPtr _getTestingWalletAddress();
+
     public static AppCoinsSDK Instance
     {
         get
@@ -297,6 +300,14 @@ public class AppCoinsSDK
     }
 #endif
 
+    #endregion
+
+    #region Get Testing Wallet Address
+    public string GetTestingWalletAddress()
+    {
+        IntPtr ptr = _getTestingWalletAddress();
+        return ptr == IntPtr.Zero ? null : Marshal.PtrToStringAnsi(ptr);
+    }
     #endregion
 
 }
