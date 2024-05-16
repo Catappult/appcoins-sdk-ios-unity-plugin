@@ -1,174 +1,84 @@
-# AppCoinsSDK for Unity on iOS
+The iOS Billing SDK is a straightforward solution for implementing Catappult billing. Its Unity Plugin provides a simple interface for Unity games to communicate with the SDK. It comprises a Billing client that integrates with AppCoins Wallet, enabling you to retrieve your products from Catappult and facilitate the purchase of those items.
 
-## Introduction
+## In Summary
 
-AppCoinsSDK is a Unity plugin designed for iOS that simplifies in-app purchasing and product management within games. This wrapper allows Unity developers to integrate native iOS in-app purchase features into their games using a straightforward C# interface.
+The billing flow in your application with the Plugin is as follows:
 
-## Features
-
-- Initialize in-app purchases with a single call.
-- Fetch and display product information.
-- Handle purchases and manage purchase states.
-- Simulate purchases when running in non-iOS environments.
+1. Add the AppCoins Unity Plugin;
+2. Query your In-App Products;
+3. User wants to purchase a product;
+4. Application starts the purchase and the Plugin handles it, returning the purchase status and validation data on completion;
+5. Application gives the product to the user.
 
 ## Requirements
 
-- Unity 2019.4 or later.
-- iOS 12.0 or higher.
+1. Unity 2019.4 or later.
+2. iOS 17.4 or higher.
 
-## Installation
+## Step-by-Step Guide
 
-1. Clone this repository or download the latest release.
-2. Import `AppCoinsSDK.unitypackage` into your Unity project.
-3. Ensure your project is set to build for iOS in Unity’s Build Settings.
+### Setup
 
-## Usage
-
-### Initializing the SDK
-
-Call `AppCoinsSDK.Instance.Initialize()` at the start of your application. It will handle all setup required for in-app purchases and product fetching.
-
-```
-csharpCopy code
-AppCoinsSDK.Instance.Initialize();
-```
-
-### Fetching Products
-
-To fetch products, listen to the `OnProductsReceived` event after initialization:
-
-```
-csharpCopy code
-AppCoinsSDK.Instance.OnProductsReceived += HandleProductsReceived;
-
-void HandleProductsReceived(object sender, ProductsReceivedEventArgs e)
-{
-    if (e.Available)
-    {
-        foreach (var product in e.Products)
-        {
-            Debug.Log($"{product.title} - {product.priceLabel}");
-        }
-    }
-}
-```
-
-### Making a Purchase
-
-To make a purchase, call the `Purchase` method with the SKU of the product:
-
-```
-csharpCopy code
-AppCoinsSDK.Instance.Purchase("gem_pack_100");
-```
-
-### Handling Purchases
-
-Implement callback methods to handle the purchase results:
-
-```
-csharpCopy code
-void OnPurchaseComplete(string result)
-{
-    var response = JsonUtility.FromJson<PurchaseResponse>(result);
-    if (response.state == "verified")
-    {
-        Debug.Log("Purchase successful!");
-        // Grant the purchased item to the user
-    }
-}
-```
-
-## Example Project
-
-An example project is included in the `/Examples` directory that demonstrates how to use the AppCoinsSDK.
-
-## Contributing
-
-Contributions are welcome! Please fork the repository and submit pull requests with your features and bug fixes.
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE.md](https://chat.openai.com/c/LICENSE.md) file for details.
-
-## Support
-
-If you encounter any issues or have questions, please file an issue on the GitHub repository.
-=======
-# AppCoins SDK for Unity / iOS
-
-The AppCoins SDK for Unity / iOS is a wrapper over [AppCoins SDK for iOS](https://github.com/Catappult/appcoins-sdk-ios) 
-
-## Tested on
-
-- Unity 2022.3.26f1.
-- iOS 17.4.
-
-## Download
-
-Please import the plugin using latest version from the [GitHub releases page](https://github.com/Catappult/appcoins-sdk-ios-unity-plugin/releases).
+1. **Add AppCoins Unity Plugin**  
+   In Unity, add the plugin from the latest release available on the repository <https://github.com/Catappult/appcoins-sdk-ios-unity-plugin> to your Assets folder.
 
 ### Implementation
 
-Now that you have imported the plugin you can start making use of its functionalities.
+Now that you have the Plugin and necessary permissions set-up you can start making use of its functionalities.
 
-1. **Check AppCoins SDK Availability**  
-   The AppCoins SDK will only be available on devices in the European Union with an iOS version equal to or higher than 17.4. Therefore, before attempting any purchase, you should check if the SDK is available by calling `AppCoinsSDK.Instance.IsAvailable()`.
+1. **Check AppCoins Billing Availability**  
+   The AppCoins Billing will only be available on devices in the European Union with an iOS version equal to or higher than 17.4 and only in applications distributed through the Aptoide iOS App Store. Therefore, before attempting any purchase, you should check if the SDK is available by calling `AppCoinsSDK.Instance.IsAvailable()`.
 
-   ```c#
-   var sdkAvailable = await AppCoinsSDK.Instance.IsAvailable();
-   
-   if (sdkAvailable)
+   ```csharp
+   var isAvailable = await AppCoinsSDK.Instance.IsAvailable();
+
+   if (isAvailable) 
    {
-      // make purchase
+     // make purchase
    }
    ```
-
 2. **Query In-App Products**  
-   You should start by getting the In-App Products you want to make available to the user. You can do this by calling `Product.products`.
-
+   You should start by getting the In-App Products you want to make available to the user. You can do this by calling `Product.products`.  
    This method can either return all of your Catappult In-App Products or a specific list.
 
    1. `AppCoinsSDK.Instance.GetProducts()`
 
       Returns all application Catappult In-App Products:
 
-      ```c#
+      ```csharp
       var products = await AppCoinsSDK.Instance.GetProducts();
       ```
    2. `AppCoinsSDK.Instance.GetProducts(skus)`
 
       Returns a specific list of Catappult In-App Products:
 
-      ```swift
-      var selectedProducts = await AppCoinsSDK.Instance.GetProducts(new string[] { "coins_100", "gas" });
+      ```csharp
+      var products = await AppCoinsSDK.Instance.GetProducts(new string[] { "coins_100", "gas" });
       ```
-
 3. **Purchase In-App Product**  
-   To purchase an In-App Product you must call the function `AppCoinsSDK.Instance.Purchase(sku, payload)`. The SDK will handle all of the purchase logic for you and it will return you on completion the result of the purchase. This result is an object with the following properties:
+   To purchase an In-App Product you must call the function `AppCoinsSDK.Instance.Purchase(sku, payload)`. The Plugin will handle all of the purchase logic for you and it will return you on completion the result of the purchase. This result is an object with the following properties:        
 
-   - Success: bool
+   1. Success: `bool`
+   2. State: `string` (`AppCoinsSDK.PURCHASE_STATE_SUCCESS`, `AppCoinsSDK.PURCHASE_STATE_UNVERIFIED`, `AppCoinsSDK.PURCHASE_STATE_USER_CANCELLED`, `AppCoinsSDK.PURCHASE_STATE_FAILED`)
+   3. Error: `string`
 
-   - State: string (`AppCoinsSDK.PURCHASE_STATE_SUCCESS`, `AppCoinsSDK.PURCHASE_STATE_UNVERIFIED`, `AppCoinsSDK.PURCHASE_STATE_USER_CANCELLED`, `AppCoinsSDK.PURCHASE_STATE_FAILED`)
+   In case of success the application will verify the transaction’s signature locally. After this verification you should handle its result:
 
-   - Error: string
+   1. If the purchase is verified you should consume the item and give it to the user.
+   2. If it is not verified you need to make a decision based on your business logic, you either still consume the item and give it to the user, or otherwise the purchase will not be acknowledged and we will refund the user in 24 hours.
 
+   In case of failure you can deal with different types of errors.
 
-   In case of success the application will verify the transaction’s signature locally. After this verification you should handle its result:  
-          – If the purchase is verified you should consume the item and give it to the user:  
-          – If it is not verified you need to make a decision based on your business logic, you either still consume the item and give it to the user, or otherwise the purchase will not be acknowledged and we will refund the user in 24 hours.
+   You can also pass a Payload to the purchase method in order to associate some sort of information with a specific purchase. You can use this for example to associate a specific user with a Purchase: `gas.purchase(payload: "User123")`.  
+   <br/>
 
-   In case of failure you can deal with different types of error in a switch statement. 
-
-   You can also pass a payload to the purchase method in order to associate some sort of information with a specific purchase. <br/>
-
-   ```c#
+   ```csharp
    var purchaseResponse = await AppCoinsSDK.Instance.Purchase("gas", "User123");
-   
+
    if (purchaseResponse.State == AppCoinsSDK.PURCHASE_STATE_SUCCESS)
    {
      var response = await AppCoinsSDK.Instance.ConsumePurchase(purchaseResponse.PurchaseSku);
-   
+
      if (response.Success)
      {
          Debug.Log("Purchase consumed successfully");
@@ -179,7 +89,6 @@ Now that you have imported the plugin you can start making use of its functional
      }
    }
    ```
-
 4. **Query Purchases**  
    You can query the user’s purchases by using one of the following methods:
 
@@ -187,27 +96,53 @@ Now that you have imported the plugin you can start making use of its functional
 
       This method returns all purchases that the user has performed in your application.
 
-      ```c#
+      ```csharp
       var purchases = await AppCoinsSDK.Instance.GetAllPurchases();
       ```
    2. `AppCoinsSDK.Instance.GetLatestPurchase(string sku)`
 
       This method returns the latest user purchase for a specific In-App Product.
 
-      ```c#
+      ```csharp
       var latestPurchase = await AppCoinsSDK.Instance.GetLatestPurchase("gas");
       ```
    3. `AppCoinsSDK.Instance.GetUnfinishedPurchases()`
 
       This method returns all of the user’s unfinished purchases in the application. An unfinished purchase is any purchase that has neither been acknowledged (verified by the SDK) nor consumed. You can use this method for consuming any unfinished purchases.
 
-      ```c#
+      ```csharp
       var unfinishedPurchases = await AppCoinsSDK.Instance.GetUnfinishedPurchases();
       ```
 
+### Testing
+
+1. **Distribution**  
+   To test the SDK integration during development, you'll need to set the installation source for development builds, simulating that the app is being distributed through Aptoide. This action will enable the SDK's `isAvailable` method.  
+   Follow these steps in Xcode:
+
+   1. In your target build settings, search for "Marketplaces".
+   2. Under "Deployment", set the key "Marketplaces" or "Alternative Distribution - Marketplaces" to "com.aptoide.ios.store".
+
+      ![Screenshot 2024-05-16 at 09 54 11](https://github.com/Catappult/appcoins-sdk-ios-unity-plugin/assets/78313327/6ed9e0c8-98f4-4001-9d0b-31ee3fd8a5a5)
+   3. In your scheme, go to the "Run" tab, then navigate to the "Options" tab. In the "Distribution" dropdown, select "com.aptoide.ios.store".
+
+      ![Screenshot 2024-05-16 at 09 43 48](https://github.com/Catappult/appcoins-sdk-ios-unity-plugin/assets/78313327/ae735ba2-d155-4ea6-a47e-4bab3eaf97ea)
+
+      For more information, please refer to Apple's official documentation: <https://developer.apple.com/documentation/appdistribution/distributing-your-app-on-an-alternative-marketplace#Test-your-app-during-development>
+2. **Purchase**
+
+   To test your integration, you will need to make purchases to verify that the integration is set up correctly. Follow these steps:
+
+   1. Obtain your testing Wallet address by calling `AppCoinsSDK.Instance.GetTestingWalletAddress()`.
+   2. Contact the Aptoide team and provide them with the address obtained in the previous step.
+   3. The Aptoide team will transfer AppCoins Credits (APPC-C) to the provided address.
+   4. Complete purchases using AppCoins Credits (APPC-C) to validate your integration.
+
+   **🚧 WARNING: Do not delete the application from your testing device. Deleting the application will result in the deletion of your AppCoins Wallet Address, and any AppCoins Credits stored in the Wallet will be lost.**
+
 ## Classes Definition and Properties
 
-The SDK integration is based on four main classes of objects that handle its logic:
+The Unity Plugin integration is based on three main classes of objects that handle its logic:
 
 ### ProductData
 
@@ -223,7 +158,7 @@ The SDK integration is based on four main classes of objects that handle its log
 - `PriceLabel`: String - The label of the price displayed to the user. Example: €0.93
 - `PriceSymbol`: String - The symbol of the geolocalized currency. Example: €
 
-### Purchase
+### PurchaseData
 
 `PurchaseData` represents an in-app purchase.
 
