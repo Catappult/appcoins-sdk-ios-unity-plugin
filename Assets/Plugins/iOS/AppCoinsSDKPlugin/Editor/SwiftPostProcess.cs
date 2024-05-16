@@ -45,55 +45,10 @@ public static class SwiftPostProcess
             manager.WriteToFile();
 
             var entitlementsFilePath = Path.Combine(buildPath, "Unity-iPhone.entitlements");
-            AddStoreKitExternalPurchaseCapability(projPath, entitlementsFilePath);
-            AddStoreKitExternalPurchaseCapabilityCountries(buildPath);
             AddSDKUrlType(buildPath);
             AddWalletQueriedUrlScheme(buildPath);
             AddCFBundleAllowMixedLocalizations(buildPath);
         }
-    }
-
-    static void AddStoreKitExternalPurchaseCapability(string projPath, string entitlementsFile)
-    {
-        string entitlementsPath = Path.Combine(projPath, entitlementsFile);
-        PlistDocument plistEntitlements = new PlistDocument();
-        if (File.Exists(entitlementsPath))
-        {
-            plistEntitlements.ReadFromFile(entitlementsPath);
-        }
-        else
-        {
-            plistEntitlements.Create();
-        }
-
-        PlistElementDict rootDict = plistEntitlements.root;
-        rootDict.SetBoolean("com.apple.developer.storekit.external-purchase", true);
-
-        plistEntitlements.WriteToFile(entitlementsPath);
-    }
-
-    static void AddStoreKitExternalPurchaseCapabilityCountries(string buildPath)
-    {
-        string plistInfoPath = Path.Combine(buildPath, "Info.plist");
-        PlistDocument plistInfo = new();
-        plistInfo.ReadFromFile(plistInfoPath);
-
-        var skExternalPurchase = plistInfo.root.CreateArray("SKExternalPurchase");
-
-        List<string> countryCodes = new()
-                        {
-                            "at", "be", "bg", "hr", "cy", "cz", "dk", "ee", "fi", "fr",
-                            "de", "gr", "hu", "ie", "it", "lv", "lt", "lu", "mt", "nl",
-                            "pl", "pt", "ro", "sk", "si", "es", "se"
-                        };
-
-
-        foreach (var countryCode in countryCodes)
-        {
-            skExternalPurchase.AddString(countryCode);
-        }
-
-        plistInfo.WriteToFile(plistInfoPath);
     }
 
     static void AddSDKUrlType(string buildPath)
