@@ -132,12 +132,12 @@ extension PurchaseData {
                         priceSymbol: product.priceSymbol
                     )
                 }
+                
+                let arrayOfDictionaries = productItems.map { $0.dictionaryRepresentation }
+                completion(arrayOfDictionaries)
             } catch {
-                print("Error: \(error)")
+                completion([])
             }
-            
-            let arrayOfDictionaries = productItems.map { $0.dictionaryRepresentation }
-            completion(arrayOfDictionaries)
         }
     }
 
@@ -153,7 +153,6 @@ extension PurchaseData {
                      switch verificationResult {
                            case .verified(let purchase):
                                 let state = "success"
-                                let payload = purchase.payload ?? ""
                                 
                                 let purchaseData = PurchaseData(
                                     uid: purchase.uid,
@@ -177,12 +176,11 @@ extension PurchaseData {
                                     )
                                 ).dictionaryRepresentation
                          
-                                completion(["State": state, "Error": "", "Purchase": purchaseData, "Payload": payload])
+                                completion(["State": state, "Error": "", "Purchase": purchaseData])
                          
                            case .unverified(let purchase, let verificationError):
                                 let state = "unverified"
                                 let errorMessage = verificationError.localizedDescription
-                                let payload = purchase.payload ?? ""
                          
                                 let purchaseData = PurchaseData(
                                      uid: purchase.uid,
@@ -206,21 +204,21 @@ extension PurchaseData {
                                      )
                                 ).dictionaryRepresentation
                                 
-                                completion(["State": state, "Error": errorMessage, "Purchase": purchaseData, "Payload": payload])
+                                completion(["State": state, "Error": errorMessage, "Purchase": purchaseData])
                      }
                 case .pending:
                     let state = "pending"
-                    completion(["State": state, "Error": "", "Purchase": "", "Payload": ""])
+                    completion(["State": state, "Error": "", "Purchase": ""])
                 case .userCancelled:
                     let state = "user_cancelled"
-                    completion(["State": state, "Error": "", "Purchase": "", "Payload": ""])
+                    completion(["State": state, "Error": "", "Purchase": ""])
                 case .failed(let error):
                     let state = "failed"
                     let errorMessage = error.localizedDescription
-                    completion(["State": state, "Error": errorMessage, "Purchase": "", "Payload": ""])
+                    completion(["State": state, "Error": errorMessage, "Purchase": ""])
                 case .none:
                     let state = "none"
-                    completion(["State": state, "Error": "", "Purchase": "", "Payload": ""])
+                    completion(["State": state, "Error": "", "Purchase": ""])
                 }
         }
     }
@@ -230,68 +228,64 @@ extension PurchaseData {
             var purchaseItems = [PurchaseData]()
             
             do {
-                    let purchases = try await Purchase.all()
-                    purchaseItems = purchases.map { purchase in
-                        PurchaseData(
-                            uid: purchase.uid,
-                            sku: purchase.sku,
-                            state: purchase.state,
-                            orderUid: purchase.orderUid,
-                            payload: purchase.payload,
-                            created: purchase.created,
-                            verification: PurchaseData.PurchaseVerification(
-                                type: purchase.verification.type,
-                                data: PurchaseData.PurchaseVerificationData(
-                                    orderId: purchase.verification.data.orderId,
-                                    packageName: purchase.verification.data.packageName,
-                                    productId: purchase.verification.data.productId,
-                                    purchaseTime: purchase.verification.data.purchaseTime,
-                                    purchaseToken: purchase.verification.data.purchaseToken,
-                                    purchaseState: purchase.verification.data.purchaseState,
-                                    developerPayload: purchase.verification.data.developerPayload
-                                ),
-                                signature: purchase.verification.signature
-                            )
+                let purchases = try await Purchase.all()
+                purchaseItems = purchases.map { purchase in
+                    PurchaseData(
+                        uid: purchase.uid,
+                        sku: purchase.sku,
+                        state: purchase.state,
+                        orderUid: purchase.orderUid,
+                        payload: purchase.payload,
+                        created: purchase.created,
+                        verification: PurchaseData.PurchaseVerification(
+                            type: purchase.verification.type,
+                            data: PurchaseData.PurchaseVerificationData(
+                                orderId: purchase.verification.data.orderId,
+                                packageName: purchase.verification.data.packageName,
+                                productId: purchase.verification.data.productId,
+                                purchaseTime: purchase.verification.data.purchaseTime,
+                                purchaseToken: purchase.verification.data.purchaseToken,
+                                purchaseState: purchase.verification.data.purchaseState,
+                                developerPayload: purchase.verification.data.developerPayload
+                            ),
+                            signature: purchase.verification.signature
                         )
-                    }
+                    )
+                }
+                
+                let arrayOfDictionaries = purchaseItems.map { $0.dictionaryRepresentation }
+                completion(arrayOfDictionaries)
             } catch {
-                print("Error")
+                completion([])
             }
-            
-            let arrayOfDictionaries = purchaseItems.map { $0.dictionaryRepresentation }
-            completion(arrayOfDictionaries)
         }
     }
 
     @objc public func getLatestPurchase(sku: String, completion: @escaping ([String: Any]) -> Void) {
         Task {
-            do {
-                    let purchase = try await Purchase.latest(sku: sku)
-                    let purchaseItem = PurchaseData(
-                        uid: purchase?.uid ?? "",
-                        sku: purchase?.sku ?? "",
-                        state: purchase?.state ?? "",
-                        orderUid: purchase?.orderUid ?? "",
-                        payload: purchase?.payload ?? "",
-                        created: purchase?.created ?? "",
-                        verification: PurchaseData.PurchaseVerification(
-                            type: purchase?.verification.type ?? "",
-                            data: PurchaseData.PurchaseVerificationData(
-                                orderId: purchase?.verification.data.orderId ?? "",
-                                packageName: purchase?.verification.data.packageName ?? "",
-                                productId: purchase?.verification.data.productId ?? "",
-                                purchaseTime: purchase?.verification.data.purchaseTime ?? 0,
-                                purchaseToken: purchase?.verification.data.purchaseToken ?? "",
-                                purchaseState: purchase?.verification.data.purchaseState ?? 0,
-                                developerPayload: purchase?.verification.data.developerPayload ?? ""
-                            ),
-                            signature: purchase?.verification.signature ?? ""
-                        )
-                    )
-                completion(purchaseItem.dictionaryRepresentation)
-            } catch {
-                print("Error")
-            }
+            let purchase = try? await Purchase.latest(sku: sku)
+            let purchaseItem = PurchaseData(
+                uid: purchase?.uid ?? "",
+                sku: purchase?.sku ?? "",
+                state: purchase?.state ?? "",
+                orderUid: purchase?.orderUid ?? "",
+                payload: purchase?.payload ?? "",
+                created: purchase?.created ?? "",
+                verification: PurchaseData.PurchaseVerification(
+                    type: purchase?.verification.type ?? "",
+                    data: PurchaseData.PurchaseVerificationData(
+                        orderId: purchase?.verification.data.orderId ?? "",
+                        packageName: purchase?.verification.data.packageName ?? "",
+                        productId: purchase?.verification.data.productId ?? "",
+                        purchaseTime: purchase?.verification.data.purchaseTime ?? 0,
+                        purchaseToken: purchase?.verification.data.purchaseToken ?? "",
+                        purchaseState: purchase?.verification.data.purchaseState ?? 0,
+                        developerPayload: purchase?.verification.data.developerPayload ?? ""
+                    ),
+                    signature: purchase?.verification.signature ?? ""
+                )
+            )
+            completion(purchaseItem.dictionaryRepresentation)
         }
     }
 
@@ -324,12 +318,12 @@ extension PurchaseData {
                         )
                     )
                 }
+                
+                let arrayOfDictionaries = purchaseItems.map { $0.dictionaryRepresentation }
+                completion(arrayOfDictionaries)
             } catch {
-                print("Error")
+                completion([])
             }
-            
-            let arrayOfDictionaries = purchaseItems.map { $0.dictionaryRepresentation }
-            completion(arrayOfDictionaries)
         }
     }
 

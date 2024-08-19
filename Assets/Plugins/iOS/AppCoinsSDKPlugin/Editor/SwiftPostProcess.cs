@@ -18,7 +18,7 @@ public static class SwiftPostProcess
 
             var targetGuid = proj.TargetGuidByName(PBXProject.GetUnityTestTargetName());
 
-            var appCoinsGuid = proj.AddRemotePackageReferenceAtBranch("https://github.com/Catappult/appcoins-sdk-ios.git", "feature/APP-2795_server_iap_validation");
+            var appCoinsGuid = proj.AddRemotePackageReferenceAtVersionUpToNextMajor("https://github.com/Catappult/appcoins-sdk-ios.git", "1.2.0");
             var mainTargetGuid = proj.GetUnityMainTargetGuid();
             var frameworkGuid = proj.GetUnityFrameworkTargetGuid();
             proj.AddRemotePackageFrameworkToProject(mainTargetGuid, "AppCoinsSDK", appCoinsGuid, false);
