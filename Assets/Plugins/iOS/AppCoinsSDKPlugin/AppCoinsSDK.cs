@@ -36,6 +36,27 @@ public class PurchaseData
     public string OrderUID;
     public string Payload;
     public string Created;
+    public PurchaseVerification Verification;
+
+    [Serializable]
+    public class PurchaseVerification
+    {
+        public string Type;
+        public string Signature;
+        public PurchaseVerificationData Data;
+    }
+
+    [Serializable]
+    public class PurchaseVerificationData
+    {
+        public string OrderId;
+        public string PackageName;
+        public string ProductId;
+        public int PurchaseTime;
+        public string PurchaseToken;
+        public int PurchaseState;
+        public string DeveloperPayload;
+    }
 }
 
 [Serializable]
@@ -49,7 +70,7 @@ public class PurchaseResponse
 {
     public string State;
     public string Error;
-    public string PurchaseSku;
+    public PurchaseData Purchase;
     public string Payload;
 }
 
