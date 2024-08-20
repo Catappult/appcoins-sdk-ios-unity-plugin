@@ -184,6 +184,10 @@ The Unity Plugin integration is based on three main classes of objects that hand
 
 #### PurchaseVerificationData
 
+`PurchaseVerificationData` represents the body of an in-app purchase verification data.
+
+**Properties:**
+
 - `OrderId`: String - The orderUid associated with the purchase. Example: 372EXWQFTVMKS6HI
 - `PackageName`: String - Bundle ID of the product's application. Example: com.appcoins.trivialdrivesample
 - `ProductId`: String - Unique identifier for the product that was purchased. Example: gas
