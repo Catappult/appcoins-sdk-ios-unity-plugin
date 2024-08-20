@@ -58,9 +58,9 @@ Now that you have the Plugin set-up you can start making use of its functionalit
 3. **Purchase In-App Product**  
    To purchase an In-App Product you must call the function `AppCoinsSDK.Instance.Purchase(sku, payload)`. The Plugin will handle all of the purchase logic for you and it will return you on completion the result of the purchase. This result is an object with the following properties:        
 
-   1. Success: `bool`
-   2. State: `string` (`AppCoinsSDK.PURCHASE_STATE_SUCCESS`, `AppCoinsSDK.PURCHASE_STATE_UNVERIFIED`, `AppCoinsSDK.PURCHASE_STATE_USER_CANCELLED`, `AppCoinsSDK.PURCHASE_STATE_FAILED`)
-   3. Error: `string`
+   1. State: `string` (`AppCoinsSDK.PURCHASE_STATE_SUCCESS`, `AppCoinsSDK.PURCHASE_STATE_UNVERIFIED`, `AppCoinsSDK.PURCHASE_STATE_USER_CANCELLED`, `AppCoinsSDK.PURCHASE_STATE_FAILED`)
+   2. Error: `string`
+   3. Purchase: `PurchaseData`
 
    In case of success the application will verify the transaction’s signature locally. After this verification you should handle its result:
 
@@ -170,6 +170,28 @@ The Unity Plugin integration is based on three main classes of objects that hand
 - `OrderUID`: String - The orderUid associated with the purchase. Example: ZWYXGYZCPWHZDZUK4H
 - `Payload`: String - The developer Payload. Example: 707048467.998992
 - `Created`: String - The creation date for the purchase. Example: 2023-01-01T10:21:29.014456Z
+- `Verification`: PurchaseVerification - The verification data associated with the purchase.
+
+#### PurchaseVerification
+
+`PurchaseVerification` represents an in-app purchase verification data.
+
+**Properties:**
+
+- `Type`: String - The type of verification made. Example: GOOGLE
+- `Signature`: String - The purchase signature. Example: C4x6cr0HJk0KkRqJXUrRAhdANespHEsyx6ajRjbG5G/v3uBzlthkUe8BO7NXH/1Yi/UhS5sk7huA+hB8EbaQK9bwaiV/Z3dISl5jgYqzSEz1c/PFPwVEHZTMrdU07i/q4FD33x0LZIxrv2XYbAcyNVRY3GLJpgzAB8NvKtumbWrbV6XG4gBmYl9w4oUgJLnedii02beKlvmR7suQcqIqlSKA9WEH2s7sCxB5+kYwjQ5oHttmOQENnJXlFRBQrhW89bl18rccF05ur71wNOU6KgMcwppUccvIfXUpDFKhXQs4Ut6c492/GX1+KzbhotDmxSLQb6aw6/l/kzaSxNyjHg==
+- `Data`: PurchaseVerificationData - The data associated with the verification of the purchase.
+
+#### PurchaseVerificationData
+
+- `OrderId`: String - The orderUid associated with the purchase. Example: 372EXWQFTVMKS6HI
+- `PackageName`: String - Bundle ID of the product's application. Example: com.appcoins.trivialdrivesample
+- `ProductId`: String - Unique identifier for the product that was purchased. Example: gas
+- `PurchaseTime`: Integer - The time the product was purchased. Example: 1583058465823
+- `PurchaseToken`: String - The token provided to the user's device when the product was purchased. Example: catappult.inapp.purchase.SZYJ5ZRWUATW5YU2
+- `PurchaseState`: Integer - The purchase state of the order. Possible values are: 0 (Purchased) and 1 (Canceled)
+- `DeveloperPayload`: String - A developer-specified string that contains supplemental information about an order. Example: myOrderId:12345678
+
 
 ### AppCoinsSDK
 
