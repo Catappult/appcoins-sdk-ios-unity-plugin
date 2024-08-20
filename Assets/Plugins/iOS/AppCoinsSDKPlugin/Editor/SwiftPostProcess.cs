@@ -13,12 +13,12 @@ public static class SwiftPostProcess
         if (buildTarget == BuildTarget.iOS)
         {
             var projPath = buildPath + "/Unity-Iphone.xcodeproj/project.pbxproj";
-            var proj = new PBXProject();
+            var proj = new PBXProject(); // https://docs.unity3d.com/ScriptReference/iOS.Xcode.PBXProject.html
             proj.ReadFromFile(projPath);
 
             var targetGuid = proj.TargetGuidByName(PBXProject.GetUnityTestTargetName());
 
-            var appCoinsGuid = proj.AddRemotePackageReferenceAtVersionUpToNextMajor("https://github.com/Catappult/appcoins-sdk-ios.git", "1.0.0");
+            var appCoinsGuid = proj.AddRemotePackageReferenceAtVersionUpToNextMajor("https://github.com/Catappult/appcoins-sdk-ios.git", "1.2.0");
             var mainTargetGuid = proj.GetUnityMainTargetGuid();
             var frameworkGuid = proj.GetUnityFrameworkTargetGuid();
             proj.AddRemotePackageFrameworkToProject(mainTargetGuid, "AppCoinsSDK", appCoinsGuid, false);
