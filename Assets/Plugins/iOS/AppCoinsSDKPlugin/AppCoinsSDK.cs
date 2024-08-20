@@ -71,7 +71,6 @@ public class PurchaseResponse
     public string State;
     public string Error;
     public PurchaseData Purchase;
-    public string Payload;
 }
 
 [Serializable]
