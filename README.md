@@ -55,6 +55,9 @@ Now that you have the Plugin set-up you can start making use of its functionalit
       ```csharp
       var products = await AppCoinsSDK.Instance.GetProducts(new string[] { "coins_100", "gas" });
       ```
+
+   > ⚠️ **Warning:** You will only be able to query your In-App Products once your application is reviewed and approved on Catappult.
+   
 3. **Purchase In-App Product**  
    To purchase an In-App Product you must call the function `AppCoinsSDK.Instance.Purchase(sku, payload)`. The Plugin will handle all of the purchase logic for you and it will return you on completion the result of the purchase. This result is an object with the following properties:        
 
