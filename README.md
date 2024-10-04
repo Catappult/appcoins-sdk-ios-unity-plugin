@@ -119,29 +119,40 @@ Now that you have the Plugin set-up you can start making use of its functionalit
 
 ### Testing
 
-1. **Distribution**  
-   To test the SDK integration during development, you'll need to set the installation source for development builds, simulating that the app is being distributed through Aptoide. This action will enable the SDK's `isAvailable` method.  
-   Follow these steps in Xcode:
+To test the SDK integration during development, you'll need to set the installation source for development builds, simulating that the app is being distributed through Aptoide. This action will enable the SDK's `isAvailable` method.  
+Follow these steps in Xcode:
 
-   1. In your target build settings, search for "Marketplaces".
-   2. Under "Deployment", set the key "Marketplaces" or "Alternative Distribution - Marketplaces" to "com.aptoide.ios.store".
+1. In your target build settings, search for "Marketplaces".
+2. Under "Deployment", set the key "Marketplaces" or "Alternative Distribution - Marketplaces" to "com.aptoide.ios.store".
 
-      ![Screenshot 2024-05-16 at 09 54 11](https://github.com/Catappult/appcoins-sdk-ios-unity-plugin/assets/78313327/6ed9e0c8-98f4-4001-9d0b-31ee3fd8a5a5)
-   3. In your scheme, go to the "Run" tab, then navigate to the "Options" tab. In the "Distribution" dropdown, select "com.aptoide.ios.store".
+   ![Screenshot 2024-05-16 at 09 54 11](https://github.com/Catappult/appcoins-sdk-ios-unity-plugin/assets/78313327/6ed9e0c8-98f4-4001-9d0b-31ee3fd8a5a5)
+3. In your scheme, go to the "Run" tab, then navigate to the "Options" tab. In the "Distribution" dropdown, select "com.aptoide.ios.store".
 
-      ![Screenshot 2024-05-16 at 09 43 48](https://github.com/Catappult/appcoins-sdk-ios-unity-plugin/assets/78313327/ae735ba2-d155-4ea6-a47e-4bab3eaf97ea)
+   ![Screenshot 2024-05-16 at 09 43 48](https://github.com/Catappult/appcoins-sdk-ios-unity-plugin/assets/78313327/ae735ba2-d155-4ea6-a47e-4bab3eaf97ea)
 
-      For more information, please refer to Apple's official documentation: <https://developer.apple.com/documentation/appdistribution/distributing-your-app-on-an-alternative-marketplace#Test-your-app-during-development>
-2. **Purchase**
+   For more information, please refer to Apple's official documentation: <https://developer.apple.com/documentation/appdistribution/distributing-your-app-on-an-alternative-marketplace#Test-your-app-during-development>
 
-   To test your integration, you will need to make purchases to verify that the integration is set up correctly. Follow these steps:
+### Sandbox Testing
 
-   1. Obtain your testing Wallet address by calling `AppCoinsSDK.Instance.GetTestingWalletAddress()`.
-   2. Contact the Aptoide team and provide them with the address obtained in the previous step.
-   3. The Aptoide team will transfer AppCoins Credits (APPC-C) to the provided address.
-   4. Complete purchases using AppCoins Credits (APPC-C) to validate your integration.
+You can test the in-app purchase (IAP) functionality using Catappult’s **Sandbox environment**. Follow these steps to set it up:
 
-   **🚧 WARNING: Do not delete the application from your testing device. Deleting the application will result in the deletion of your AppCoins Wallet Address, and any AppCoins Credits stored in the Wallet will be lost.**
+1. Retrieve your testing wallet address by calling `AppCoinsSDK.Instance.GetTestingWalletAddress()`.
+2. Add your testing wallet address to the **Sandbox menu** in the Developer Console, and use this wallet to make test purchases in your app.
+
+> ⚠️ **Warning:** You must have proven ownership of the app to access the Sandbox environment and test IAPs.
+
+> ⚠️ **Warning:** Do not delete the app from the testing device, as this will remove the testing wallet. If the app is deleted, you’ll need to obtain a new wallet address and add it again to the Sandbox.
+
+#### Testing In-App Purchases
+
+1. Select the item you wish to purchase in the app.
+2. Choose the **Sandbox** option for the transaction.
+3. Once the purchase is completed, verify the transaction in the Wallet by checking the **Sandbox transactions**.
+4. Ensure the purchased item is correctly received in the app.
+
+If all steps are successful, your billing solution is fully integrated!
+
+For more detailed instructions, refer to [Catappult's documentation](https://docs.catappult.io/docs/ios-sandbox-environment).
 
 ## Classes Definition and Properties
 
