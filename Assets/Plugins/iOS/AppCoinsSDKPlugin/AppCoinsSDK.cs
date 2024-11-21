@@ -187,8 +187,12 @@ public class AppCoinsSDK
     [AOT.MonoPInvokeCallback(typeof(JsonCallback))]
     private static void OnGetProductsCompleted(string json)
     {
-        var response = JsonUtility.FromJson<GetProductsResponse>("{\"Products\":" + json + "}");
-        Instance._tcsGetProducts.SetResult(response.Products);
+        if (json.StartsWith("[{\"Error\":")) {
+            Debug.Log("WE HAVE AN ERROR C# " + json);
+        } else {
+            var response = JsonUtility.FromJson<GetProductsResponse>("{\"Products\":" + json + "}");
+            Instance._tcsGetProducts.SetResult(response.Products);
+        }
     }
 #endif
 

@@ -81,6 +81,44 @@ extension PurchaseData {
     }
 }
 
+public struct AppCoinsPluginSDKError {
+    public let errorType: String
+    public let debugInfo: DebugInfo
+
+    public struct DebugInfo {
+        public let message: String
+        public let description: String
+        public let request: DebugRequestInfo
+    }
+
+    public struct DebugRequestInfo {
+        public let url: String
+        public let method: String
+        public let responseData: String
+        public let statusCode: String
+    }
+
+}
+
+extension AppCoinsPluginSDKError {
+    var appCoinsPluginSDKErrorDict: [String: Any] {
+        let errorDict: [String: Any] = [
+            "errorType": errorType,
+            "debugInfo": [
+                "message": debugInfo.message,
+                "description": debugInfo.description,
+                "request": [
+                    "url": debugInfo.request.url,
+                    "method": debugInfo.request.method,
+                    "responseData": debugInfo.request.responseData,
+                    "statusCode": debugInfo.request.statusCode
+                ]
+            ]
+        ]
+        return ["Error": errorDict]
+    }
+}
+
 @objc public class UnityPlugin : NSObject {
     
     @objc public static let shared = UnityPlugin()
@@ -135,8 +173,201 @@ extension PurchaseData {
                 
                 let arrayOfDictionaries = productItems.map { $0.dictionaryRepresentation }
                 completion(arrayOfDictionaries)
-            } catch {
-                completion([])
+            } catch let error as AppCoinsSDK.AppCoinsSDKError {
+                switch error {
+                    case .networkError(let debugInfo):
+                        if let request = debugInfo.request {
+                            let appCoinsPluginSDKError = AppCoinsPluginSDKError(
+                                errorType: "networkError",
+                                debugInfo: AppCoinsPluginSDKError.DebugInfo(
+                                    message: debugInfo.message,
+                                    description: debugInfo.description,
+                                    request: AppCoinsPluginSDKError.DebugRequestInfo(
+                                        url: request.url,
+                                        method: request.method.rawValue,
+                                        responseData: request.responseData,
+                                        statusCode: String(request.statusCode)
+                                    )
+                                )
+                            ).appCoinsPluginSDKErrorDict
+                            completion([appCoinsPluginSDKError])
+                        } else {
+                            let appCoinsPluginSDKError = AppCoinsPluginSDKError(
+                                errorType: "networkError",
+                                debugInfo: AppCoinsPluginSDKError.DebugInfo(
+                                    message: debugInfo.message,
+                                    description: debugInfo.description,
+                                    request: AppCoinsPluginSDKError.DebugRequestInfo(
+                                        url: "",
+                                        method: "",
+                                        responseData: "",
+                                        statusCode: ""
+                                    )
+                                )
+                            ).appCoinsPluginSDKErrorDict
+                            completion([appCoinsPluginSDKError])
+                        }
+                    case .systemError(let debugInfo):
+                        if let request = debugInfo.request {
+                            let appCoinsPluginSDKError = AppCoinsPluginSDKError(
+                                errorType: "systemError",
+                                debugInfo: AppCoinsPluginSDKError.DebugInfo(
+                                    message: debugInfo.message,
+                                    description: debugInfo.description,
+                                    request: AppCoinsPluginSDKError.DebugRequestInfo(
+                                        url: request.url,
+                                        method: request.method.rawValue,
+                                        responseData: request.responseData,
+                                        statusCode: String(request.statusCode)
+                                    )
+                                )
+                            ).appCoinsPluginSDKErrorDict
+                            completion([appCoinsPluginSDKError])
+                        } else {
+                            let appCoinsPluginSDKError = AppCoinsPluginSDKError(
+                                errorType: "systemError",
+                                debugInfo: AppCoinsPluginSDKError.DebugInfo(
+                                    message: debugInfo.message,
+                                    description: debugInfo.description,
+                                    request: AppCoinsPluginSDKError.DebugRequestInfo(
+                                        url: "",
+                                        method: "",
+                                        responseData: "",
+                                        statusCode: ""
+                                    )
+                                )
+                            ).appCoinsPluginSDKErrorDict
+                            completion([appCoinsPluginSDKError])
+                        }
+                    case .notEntitled(let debugInfo):
+                        if let request = debugInfo.request {
+                            let appCoinsPluginSDKError = AppCoinsPluginSDKError(
+                                errorType: "notEntitled",
+                                debugInfo: AppCoinsPluginSDKError.DebugInfo(
+                                    message: debugInfo.message,
+                                    description: debugInfo.description,
+                                    request: AppCoinsPluginSDKError.DebugRequestInfo(
+                                        url: request.url,
+                                        method: request.method.rawValue,
+                                        responseData: request.responseData,
+                                        statusCode: String(request.statusCode)
+                                    )
+                                )
+                            ).appCoinsPluginSDKErrorDict
+                            completion([appCoinsPluginSDKError])
+                        } else {
+                            let appCoinsPluginSDKError = AppCoinsPluginSDKError(
+                                errorType: "notEntitled",
+                                debugInfo: AppCoinsPluginSDKError.DebugInfo(
+                                    message: debugInfo.message,
+                                    description: debugInfo.description,
+                                    request: AppCoinsPluginSDKError.DebugRequestInfo(
+                                        url: "",
+                                        method: "",
+                                        responseData: "",
+                                        statusCode: ""
+                                    )
+                                )
+                            ).appCoinsPluginSDKErrorDict
+                            completion([appCoinsPluginSDKError])
+                        }
+                    case .productUnavailable(let debugInfo):
+                        if let request = debugInfo.request {
+                            let appCoinsPluginSDKError = AppCoinsPluginSDKError(
+                                errorType: "productUnavailable",
+                                debugInfo: AppCoinsPluginSDKError.DebugInfo(
+                                    message: debugInfo.message,
+                                    description: debugInfo.description,
+                                    request: AppCoinsPluginSDKError.DebugRequestInfo(
+                                        url: request.url,
+                                        method: request.method.rawValue,
+                                        responseData: request.responseData,
+                                        statusCode: String(request.statusCode)
+                                    )
+                                )
+                            ).appCoinsPluginSDKErrorDict
+                            completion([appCoinsPluginSDKError])
+                        } else {
+                            let appCoinsPluginSDKError = AppCoinsPluginSDKError(
+                                errorType: "productUnavailable",
+                                debugInfo: AppCoinsPluginSDKError.DebugInfo(
+                                    message: debugInfo.message,
+                                    description: debugInfo.description,
+                                    request: AppCoinsPluginSDKError.DebugRequestInfo(
+                                        url: "",
+                                        method: "",
+                                        responseData: "",
+                                        statusCode: ""
+                                    )
+                                )
+                            ).appCoinsPluginSDKErrorDict
+                            completion([appCoinsPluginSDKError])
+                        }
+                    case .purchaseNotAllowed(let debugInfo):
+                        if let request = debugInfo.request {
+                            let appCoinsPluginSDKError = AppCoinsPluginSDKError(
+                                errorType: "purchaseNotAllowed",
+                                debugInfo: AppCoinsPluginSDKError.DebugInfo(
+                                    message: debugInfo.message,
+                                    description: debugInfo.description,
+                                    request: AppCoinsPluginSDKError.DebugRequestInfo(
+                                        url: request.url,
+                                        method: request.method.rawValue,
+                                        responseData: request.responseData,
+                                        statusCode: String(request.statusCode)
+                                    )
+                                )
+                            ).appCoinsPluginSDKErrorDict
+                            completion([appCoinsPluginSDKError])
+                        } else {
+                            let appCoinsPluginSDKError = AppCoinsPluginSDKError(
+                                errorType: "purchaseNotAllowed",
+                                debugInfo: AppCoinsPluginSDKError.DebugInfo(
+                                    message: debugInfo.message,
+                                    description: debugInfo.description,
+                                    request: AppCoinsPluginSDKError.DebugRequestInfo(
+                                        url: "",
+                                        method: "",
+                                        responseData: "",
+                                        statusCode: ""
+                                    )
+                                )
+                            ).appCoinsPluginSDKErrorDict
+                            completion([appCoinsPluginSDKError])
+                        }
+                    case .unknown(let debugInfo):
+                        if let request = debugInfo.request {
+                            let appCoinsPluginSDKError = AppCoinsPluginSDKError(
+                                errorType: "unknown",
+                                debugInfo: AppCoinsPluginSDKError.DebugInfo(
+                                    message: debugInfo.message,
+                                    description: debugInfo.description,
+                                    request: AppCoinsPluginSDKError.DebugRequestInfo(
+                                        url: request.url,
+                                        method: request.method.rawValue,
+                                        responseData: request.responseData,
+                                        statusCode: String(request.statusCode)
+                                    )
+                                )
+                            ).appCoinsPluginSDKErrorDict
+                            completion([appCoinsPluginSDKError])
+                        } else {
+                            let appCoinsPluginSDKError = AppCoinsPluginSDKError(
+                                errorType: "unknown",
+                                debugInfo: AppCoinsPluginSDKError.DebugInfo(
+                                    message: debugInfo.message,
+                                    description: debugInfo.description,
+                                    request: AppCoinsPluginSDKError.DebugRequestInfo(
+                                        url: "",
+                                        method: "",
+                                        responseData: "",
+                                        statusCode: ""
+                                    )
+                                )
+                            ).appCoinsPluginSDKErrorDict
+                            completion([appCoinsPluginSDKError])
+                        }
+                }
             }
         }
     }
