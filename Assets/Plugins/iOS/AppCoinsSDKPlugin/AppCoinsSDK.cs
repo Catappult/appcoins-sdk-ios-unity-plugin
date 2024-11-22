@@ -187,7 +187,7 @@ public class AppCoinsSDK
     [AOT.MonoPInvokeCallback(typeof(JsonCallback))]
     private static void OnGetProductsCompleted(string json)
     {
-        if (json.StartsWith("[{\"Error\":")) {
+        if (json.StartsWith("[{\"Error\":{")) {
             Debug.Log("WE HAVE AN ERROR ON GETPRODUCTS C# " + json);
         } else {
             var response = JsonUtility.FromJson<GetProductsResponse>("{\"Products\":" + json + "}");
@@ -219,7 +219,7 @@ public class AppCoinsSDK
     [AOT.MonoPInvokeCallback(typeof(JsonCallback))]
     private static void OnPurchaseCompleted(string json)
     {
-        if (json.StartsWith("{\"Error\":")) {
+        if (json.StartsWith("{\"Error\":{")) {
             Debug.Log("WE HAVE AN ERROR ON PURCHASE C# " + json);
         } else {
             var response = JsonUtility.FromJson<PurchaseResponse>(json);
