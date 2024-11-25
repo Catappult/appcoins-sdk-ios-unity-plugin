@@ -2,6 +2,7 @@
 #import "UnityFramework/UnityFramework-Swift.h"
 
 typedef void (*JsonCallback)(const char *json);
+typedef void (*PurchaseJsonCallback)(const char *jsonSuccess, const char *jsonError);
 
 extern "C" {
     void _handleDeepLink(const char *url, JsonCallback callback) {
@@ -69,24 +70,37 @@ extern "C" {
         }];
     }
 
-    void _purchase(const char *sku, const char *payload, JsonCallback callback) {
+    void _purchase(const char *sku, const char *payload, PurchaseJsonCallback callback) {
         NSString *skuString = [NSString stringWithUTF8String:sku];
         NSString *payloadString = [NSString stringWithUTF8String:payload];
         
-        [UnityPlugin.shared purchaseWithSku:skuString payload:payloadString completion:^(NSDictionary *data) {
-            NSError *error = nil;
-            NSData *jsonData = [NSJSONSerialization dataWithJSONObject:data options:0 error:&error];
-            if (!jsonData) {
-                NSLog(@"Failed to serialize JSON: %@", error);
-                if (callback) {
-                    callback(""); // Call with an empty string or error message
+        [UnityPlugin.shared purchaseWithSku:skuString payload:payloadString completion:^(NSDictionary * _Nullable success, NSDictionary * _Nullable sdkError) {
+            NSString *jsonSuccess = nil;
+            NSString *jsonError = nil;
+
+            if (success) {
+                NSError *error = nil;
+                NSData *jsonData = [NSJSONSerialization dataWithJSONObject:success options:0 error:&error];
+                if (!jsonData) {
+                    NSLog(@"Failed to serialize success JSON: %@", error);
+                } else {
+                    jsonSuccess = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
                 }
-                return;
             }
-            
-            NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+
+            if (sdkError) {
+                NSError *error = nil;
+                NSData *jsonData = [NSJSONSerialization dataWithJSONObject:sdkError options:0 error:&error];
+                if (!jsonData) {
+                    NSLog(@"Failed to serialize error JSON: %@", error);
+                } else {
+                    jsonError = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+                }
+            }
+
+            // Callback para Unity com ambos os parâmetros
             if (callback) {
-                callback([jsonString UTF8String]);
+                callback(jsonSuccess ? [jsonSuccess UTF8String] : NULL, jsonError ? [jsonError UTF8String] : NULL);
             }
         }];
     }

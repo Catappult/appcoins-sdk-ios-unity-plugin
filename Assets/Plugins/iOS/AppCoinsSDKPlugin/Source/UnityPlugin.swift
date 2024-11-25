@@ -93,6 +93,7 @@ public struct AppCoinsPluginSDKError {
     
     public struct DebugRequestInfo {
         public let url: String
+        public let body: String
         public let method: String
         public let responseData: String
         public let statusCode: String
@@ -106,42 +107,48 @@ extension AppCoinsPluginSDKError {
         case .networkError(let debugInfo):
             if let request = debugInfo.request {
                 return AppCoinsPluginSDKError.createDict(errorType: "networkError", message: debugInfo.message, description: debugInfo.description, 
-                                                         requestUrl: request.url, requestBody: request.body, requestMethod: request.method.rawValue, requestResponseData: request.responseData, requestStatusCode: String(request.statusCode))
+                                                         requestUrl: request.url, requestBody: request.body, requestMethod: request.method.rawValue, 
+                                                         requestResponseData: request.responseData, requestStatusCode: String(request.statusCode))
             } else {
                 return AppCoinsPluginSDKError.createDict(errorType: "networkError", message: debugInfo.message, description: debugInfo.description)
             }
         case .systemError(let debugInfo):
             if let request = debugInfo.request {
                 return createDict(errorType: "systemError", message: debugInfo.message, description: debugInfo.description, 
-                                  requestUrl: request.url, requestBody: request.body, requestMethod: request.method.rawValue, requestResponseData: request.responseData, requestStatusCode: String(request.statusCode))
+                                  requestUrl: request.url, requestBody: request.body, requestMethod: request.method.rawValue, requestResponseData: request.responseData, 
+                                  requestStatusCode: String(request.statusCode))
             } else {
                 return createDict(errorType: "systemError", message: debugInfo.message, description: debugInfo.description)
             }
         case .notEntitled(let debugInfo):
             if let request = debugInfo.request {
                 return createDict(errorType: "notEntitled", message: debugInfo.message, description: debugInfo.description, 
-                                  requestUrl: request.url, requestBody: request.body, requestMethod: request.method.rawValue, requestResponseData: request.responseData, requestStatusCode: String(request.statusCode))
+                                  requestUrl: request.url, requestBody: request.body, requestMethod: request.method.rawValue, requestResponseData: request.responseData, 
+                                  requestStatusCode: String(request.statusCode))
             } else {
                 return createDict(errorType: "notEntitled", message: debugInfo.message, description: debugInfo.description)
             }
         case .productUnavailable(let debugInfo):
             if let request = debugInfo.request {
                 return createDict(errorType: "productUnavailable", message: debugInfo.message, description: debugInfo.description, 
-                                  requestUrl: request.url, requestBody: request.body, requestMethod: request.method.rawValue, requestResponseData: request.responseData, requestStatusCode: String(request.statusCode))
+                                  requestUrl: request.url, requestBody: request.body, requestMethod: request.method.rawValue, requestResponseData: request.responseData, 
+                                  requestStatusCode: String(request.statusCode))
             } else {
                 return createDict(errorType: "productUnavailable", message: debugInfo.message, description: debugInfo.description)
             }
         case .purchaseNotAllowed(let debugInfo):
             if let request = debugInfo.request {
                 return createDict(errorType: "purchaseNotAllowed", message: debugInfo.message, description: debugInfo.description, 
-                                  requestUrl: request.url, requestBody: request.body, requestMethod: request.method.rawValue, requestResponseData: request.responseData, requestStatusCode: String(request.statusCode))
+                                  requestUrl: request.url, requestBody: request.body, requestMethod: request.method.rawValue, requestResponseData: request.responseData, 
+                                  requestStatusCode: String(request.statusCode))
             } else {
                 return createDict(errorType: "purchaseNotAllowed", message: debugInfo.message, description: debugInfo.description)
             }
         case .unknown(let debugInfo):
             if let request = debugInfo.request {
                 return createDict(errorType: "unknown", message: debugInfo.message, description: debugInfo.description, 
-                                  requestUrl: request.url, requestBody: request.body, requestMethod: request.method.rawValue, requestResponseData: request.responseData, requestStatusCode: String(request.statusCode))
+                                  requestUrl: request.url, requestBody: request.body, requestMethod: request.method.rawValue, requestResponseData: request.responseData, 
+                                  requestStatusCode: String(request.statusCode))
             } else {
                 return createDict(errorType: "unknown", message: debugInfo.message, description: debugInfo.description)
             }
@@ -242,7 +249,7 @@ extension AppCoinsPluginSDKError {
         }
     }
     
-    @objc public func purchase(sku: String, payload: String, completion: @escaping ([String: Any]) -> Void) {
+    @objc public func purchase(sku: String, payload: String, completion: @escaping (_ success: [String: Any]? , _ sdkError: [String: Any]?) -> Void) {
         Task {
             let products = try await Product.products(for: [sku])
             
@@ -277,7 +284,7 @@ extension AppCoinsPluginSDKError {
                         )
                     ).dictionaryRepresentation
                     
-                    completion(["State": state, "Error": "", "Purchase": purchaseData])
+                    completion(["State": state, "Error": "", "Purchase": purchaseData as NSDictionary], nil)
                     
                 case .unverified(let purchase, let verificationError):
                     let state = "unverified"
@@ -305,32 +312,33 @@ extension AppCoinsPluginSDKError {
                         )
                     ).dictionaryRepresentation
                     
-                    completion(["State": state, "Error": errorMessage, "Purchase": purchaseData])
+                    completion(["State": state, "Error": errorMessage, "Purchase": purchaseData], nil)
                 }
             case .pending:
                 let state = "pending"
-                completion(["State": state, "Error": "", "Purchase": ""])
+                completion(["State": state, "Error": "", "Purchase": ""], nil)
             case .userCancelled:
                 let state = "user_cancelled"
-                completion(["State": state, "Error": "", "Purchase": ""])
+                completion(["State": state, "Error": "", "Purchase": ""], nil)
             case .failed(let error):
+                let state = "failed"
                 switch error {
                 case .networkError:
-                    completion(AppCoinsPluginSDKError.createErrorDict(error: error))
+                    completion(nil, AppCoinsPluginSDKError.createErrorDict(error: error))
                 case .systemError:
-                    completion(AppCoinsPluginSDKError.createErrorDict(error: error))
+                    completion(nil, AppCoinsPluginSDKError.createErrorDict(error: error))
                 case .notEntitled:
-                    completion(AppCoinsPluginSDKError.createErrorDict(error: error))
+                    completion(nil, AppCoinsPluginSDKError.createErrorDict(error: error))
                 case .productUnavailable:
-                    completion(AppCoinsPluginSDKError.createErrorDict(error: error))
+                    completion(nil, AppCoinsPluginSDKError.createErrorDict(error: error))
                 case .purchaseNotAllowed:
-                    completion(AppCoinsPluginSDKError.createErrorDict(error: error))
+                    completion(nil, AppCoinsPluginSDKError.createErrorDict(error: error))
                 case .unknown:
-                    completion(AppCoinsPluginSDKError.createErrorDict(error: error))
+                    completion(nil, AppCoinsPluginSDKError.createErrorDict(error: error))
                 }
             case .none:
                 let state = "none"
-                completion(["State": state, "Error": "", "Purchase": ""])
+                completion(["State": state, "Error": "", "Purchase": ""], nil)
             }
         }
     }

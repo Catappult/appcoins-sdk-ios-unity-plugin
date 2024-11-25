@@ -80,6 +80,56 @@ public class ConsumePurchaseResponse
     public string Error;
 }
 
+[Serializable]
+public class ErrorWrapper {
+    public AppCoinsPluginSDKError Error;
+
+    public override string ToString()
+    {
+        return Error != null ? $"{Error.ToString()}" : "No Error information available.";
+    }
+}
+
+[Serializable]
+public class AppCoinsPluginSDKError 
+{
+    public string errorType;
+    public DebugInfo debugInfo;
+
+    public override string ToString()
+    {
+        return $"ErrorType: {errorType},\nDebugInfo: {debugInfo.ToString()}";
+    }
+
+    [Serializable]
+    public class DebugInfo
+    {
+        public string message;
+        public string description;
+        public DebugRequestInfo request;
+
+        public override string ToString()
+        {
+            return $"\nMessage: {message},\nDescription: {description},\nRequest: {request.ToString()}\n";
+        }
+    }
+
+    [Serializable]
+    public class DebugRequestInfo
+    {
+        public string url;
+        public string body;
+        public string method;
+        public string responseData;
+        public string statusCode;
+
+        public override string ToString()
+        {
+            return $"URL: {url},\nBody: {body},\nMethod: {method},\nResponseData: {responseData},\nStatusCode: {statusCode}";
+        }
+    }
+}
+
 public class AppCoinsSDK
 {
     public const string PURCHASE_PENDING = "PENDING";
@@ -94,6 +144,7 @@ public class AppCoinsSDK
 
     private static AppCoinsSDK _instance;
     private delegate void JsonCallback(string result);
+    private delegate void ErrorHandlingJsonCallback(string jsonSuccess, string jsonError);
 
     [DllImport("__Internal")]
     private static extern void _handleDeepLink(string url, JsonCallback callback);
@@ -105,7 +156,7 @@ public class AppCoinsSDK
     private static extern void _getProducts(string[] skus, int count, JsonCallback callback);
 
     [DllImport("__Internal")]
-    private static extern void _purchase(string sku, string payload, JsonCallback callback);
+    private static extern void _purchase(string sku, string payload, ErrorHandlingJsonCallback callback);
 
     [DllImport("__Internal")]
     private static extern void _getAllPurchases(JsonCallback callback);
@@ -148,24 +199,24 @@ public class AppCoinsSDK
     private TaskCompletionSource<bool> _tcsIsAvailable;
     public async Task<bool> IsAvailable()
     {
-#if UNITY_IOS && !UNITY_EDITOR
-        this._tcsIsAvailable = new TaskCompletionSource<bool>();
-        _isAvailable(OnAvailabilityCheckCompleted);
-        return await this._tcsIsAvailable.Task;        
-#else
-        Debug.Log("AppCoins SDK is not available.");
-        return await Task.FromResult(false);
-#endif
+        #if UNITY_IOS && !UNITY_EDITOR
+                this._tcsIsAvailable = new TaskCompletionSource<bool>();
+                _isAvailable(OnAvailabilityCheckCompleted);
+                return await this._tcsIsAvailable.Task;        
+        #else
+                Debug.Log("AppCoins SDK is not available.");
+                return await Task.FromResult(false);
+        #endif
     }
 
-#if UNITY_IOS && !UNITY_EDITOR
-    [AOT.MonoPInvokeCallback(typeof(JsonCallback))]
-    private static void OnAvailabilityCheckCompleted(string json)
-    {
-        var response = JsonUtility.FromJson<IsAvailableResponse>(json);
-        Instance._tcsIsAvailable.SetResult(response.Available);
-    }
-#endif
+    #if UNITY_IOS && !UNITY_EDITOR
+        [AOT.MonoPInvokeCallback(typeof(JsonCallback))]
+        private static void OnAvailabilityCheckCompleted(string json)
+        {
+            var response = JsonUtility.FromJson<IsAvailableResponse>(json);
+            Instance._tcsIsAvailable.SetResult(response.Available);
+        }
+    #endif
 
     #endregion
 
@@ -173,84 +224,107 @@ public class AppCoinsSDK
     private TaskCompletionSource<ProductData[]> _tcsGetProducts;
     public async Task<ProductData[]> GetProducts(string[] skus = null)
     {
-#if UNITY_IOS && !UNITY_EDITOR
-        skus ??= new string[0];
-        this._tcsGetProducts = new TaskCompletionSource<ProductData[]>();
-        _getProducts(skus, skus.Length, OnGetProductsCompleted);
-        return await this._tcsGetProducts.Task;        
-#else
-        return await Task.FromResult(new ProductData[0]);
-#endif
+        #if UNITY_IOS && !UNITY_EDITOR
+                skus ??= new string[0];
+                this._tcsGetProducts = new TaskCompletionSource<ProductData[]>();
+                _getProducts(skus, skus.Length, OnGetProductsCompleted);
+                return await this._tcsGetProducts.Task;        
+        #else
+                return await Task.FromResult(new ProductData[0]);
+        #endif
     }
 
-#if UNITY_IOS && !UNITY_EDITOR
-    [AOT.MonoPInvokeCallback(typeof(JsonCallback))]
-    private static void OnGetProductsCompleted(string json)
-    {
-        if (json.StartsWith("[{\"Error\":{")) {
-            Debug.Log("WE HAVE AN ERROR ON GETPRODUCTS C# " + json);
-        } else {
-            var response = JsonUtility.FromJson<GetProductsResponse>("{\"Products\":" + json + "}");
-            Instance._tcsGetProducts.SetResult(response.Products);
+    #if UNITY_IOS && !UNITY_EDITOR
+        [AOT.MonoPInvokeCallback(typeof(JsonCallback))]
+        private static void OnGetProductsCompleted(string json)
+        {
+            if (json.StartsWith("[{\"Error\":{")) {
+                Debug.Log("WE HAVE AN ERROR ON GETPRODUCTS C# " + json);
+            } else {
+                var response = JsonUtility.FromJson<GetProductsResponse>("{\"Products\":" + json + "}");
+                Instance._tcsGetProducts.SetResult(response.Products);
+            }
         }
-    }
-#endif
+    #endif
 
     #endregion
 
     #region Purchase
+    
     private TaskCompletionSource<PurchaseResponse> _tcsPurchase;
+
     public async Task<PurchaseResponse> Purchase(string sku, string payload = "")
     {
-#if UNITY_IOS && !UNITY_EDITOR
-        this._tcsPurchase = new TaskCompletionSource<PurchaseResponse>();
-        _purchase(sku, payload, OnPurchaseCompleted);
-        return await this._tcsPurchase.Task;        
-#else
-        return await Task.FromResult(new PurchaseResponse
-        {
-            State = "error",
-            Error = "AppCoins SDK is not available."
-        });
-#endif
+        #if UNITY_IOS && !UNITY_EDITOR
+                this._tcsPurchase = new TaskCompletionSource<PurchaseResponse>();
+                _purchase(sku, payload, OnPurchaseCompleted);
+                return await this._tcsPurchase.Task;        
+        #else
+                return await Task.FromResult(new PurchaseResponse
+                {
+                    State = "error",
+                    Error = "AppCoins SDK is not available."
+                });
+        #endif
     }
 
-#if UNITY_IOS && !UNITY_EDITOR
-    [AOT.MonoPInvokeCallback(typeof(JsonCallback))]
-    private static void OnPurchaseCompleted(string json)
+    #if UNITY_IOS && !UNITY_EDITOR
+    [AOT.MonoPInvokeCallback(typeof(ErrorHandlingJsonCallback))]
+    private static void OnPurchaseCompleted(string jsonSuccess, string jsonError)
     {
-        if (json.StartsWith("{\"Error\":{")) {
-            Debug.Log("WE HAVE AN ERROR ON PURCHASE C# " + json);
-        } else {
-            var response = JsonUtility.FromJson<PurchaseResponse>(json);
-            Instance._tcsPurchase.SetResult(response);
+        if (!string.IsNullOrEmpty(jsonError))
+        {
+            var sdkError = JsonUtility.FromJson<ErrorWrapper>(jsonError);
+            if (sdkError != null)
+            {
+                Debug.LogError($"Error in purchase: {sdkError.ToString()}");
+            }
+            else
+            {
+                Debug.LogError("Failure in error JSON deserialization");
+            }
+        }
+        else if (!string.IsNullOrEmpty(jsonSuccess))
+        {
+            var response = JsonUtility.FromJson<PurchaseResponse>(jsonSuccess);
+            if (response != null)
+            {
+                Instance._tcsPurchase.SetResult(response);
+            }
+            else
+            {
+                Debug.LogError("Failure in success JSON deserialization");
+            }
+        }
+        else
+        {
+            Debug.LogError("Both callback parameters are empty or null");
         }
     }
-#endif
-
+    #endif
     #endregion
 
     #region Get All Purchases
     private TaskCompletionSource<PurchaseData[]> _tcsGetAllPurchases;
     public async Task<PurchaseData[]> GetAllPurchases()
     {
-#if UNITY_IOS && !UNITY_EDITOR
-        this._tcsGetAllPurchases = new TaskCompletionSource<PurchaseData[]>();
-        _getAllPurchases(OnGetAllPurchasesCompleted);
-        return await this._tcsGetAllPurchases.Task;        
-#else
-        return await Task.FromResult(new PurchaseData[0]);
-#endif
+        #if UNITY_IOS && !UNITY_EDITOR
+                this._tcsGetAllPurchases = new TaskCompletionSource<PurchaseData[]>();
+                _getAllPurchases(OnGetAllPurchasesCompleted);
+                return await this._tcsGetAllPurchases.Task;        
+        #else
+                return await Task.FromResult(new PurchaseData[0]);
+        #endif
     }
 
-#if UNITY_IOS && !UNITY_EDITOR
-    [AOT.MonoPInvokeCallback(typeof(JsonCallback))]
-    private static void OnGetAllPurchasesCompleted(string json)
-    {
-        var response = JsonUtility.FromJson<GetPurchasesResponse>("{\"Purchases\":" + json + "}");
-        Instance._tcsGetAllPurchases.SetResult(response.Purchases);
-    }
-#endif
+    #if UNITY_IOS && !UNITY_EDITOR
+        [AOT.MonoPInvokeCallback(typeof(JsonCallback))]
+        private static void OnGetAllPurchasesCompleted(string json)
+        {
+            var response = JsonUtility.FromJson<GetPurchasesResponse>("{\"Purchases\":" + json + "}");
+            Instance._tcsGetAllPurchases.SetResult(response.Purchases);
+        }
+    #endif
 
     #endregion
 
