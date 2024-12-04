@@ -159,7 +159,7 @@ public class AppCoinsSDK
     private static extern void _purchase(string sku, string payload, ErrorHandlingJsonCallback callback);
 
     [DllImport("__Internal")]
-    private static extern void _getAllPurchases(JsonCallback callback);
+    private static extern void _getAllPurchases(ErrorHandlingJsonCallback callback);
 
     [DllImport("__Internal")]
     private static extern void _getLatestPurchase(string sku, JsonCallback callback);
@@ -238,7 +238,6 @@ public class AppCoinsSDK
         [AOT.MonoPInvokeCallback(typeof(ErrorHandlingJsonCallback))]
         private static void OnGetProductsCompleted(string jsonSuccess, string jsonError)
         {
-
             if (!string.IsNullOrEmpty(jsonError))
             {
                 var sdkError = JsonUtility.FromJson<ErrorWrapper>(jsonError);
@@ -341,11 +340,37 @@ public class AppCoinsSDK
     }
 
     #if UNITY_IOS && !UNITY_EDITOR
-        [AOT.MonoPInvokeCallback(typeof(JsonCallback))]
-        private static void OnGetAllPurchasesCompleted(string json)
+        [AOT.MonoPInvokeCallback(typeof(ErrorHandlingJsonCallback))]
+        private static void OnGetAllPurchasesCompleted(string jsonSuccess, string jsonError)
         {
-            var response = JsonUtility.FromJson<GetPurchasesResponse>("{\"Purchases\":" + json + "}");
-            Instance._tcsGetAllPurchases.SetResult(response.Purchases);
+            if (!string.IsNullOrEmpty(jsonError))
+            {
+                var sdkError = JsonUtility.FromJson<ErrorWrapper>(jsonError);
+                if (sdkError != null)
+                {
+                    Debug.LogError($"Error in get all products: {sdkError.ToString()}");
+                }
+                else
+                {
+                    Debug.LogError("Failure in error JSON deserialization");
+                }
+            }
+            else if (!string.IsNullOrEmpty(jsonSuccess))
+            {
+                var response = JsonUtility.FromJson<GetPurchasesResponse>("{\"Purchases\":" + jsonSuccess + "}");
+                if (response != null)
+                {
+                    Instance._tcsGetAllPurchases.SetResult(response.Purchases);
+                }
+                else
+                {
+                    Debug.LogError("Failure in success JSON deserialization");
+                }
+            }
+            else
+            {
+                Debug.LogError("Both callback parameters are empty or null");
+            }
         }
     #endif
 
