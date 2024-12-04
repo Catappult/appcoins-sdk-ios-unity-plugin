@@ -204,7 +204,7 @@ extension AppCoinsPluginSDKError {
         }
     }
     
-    @objc public func getProducts(skus: [String], completion: @escaping ([[String: Any]]) -> Void) {
+    @objc public func getProducts(skus: [String], completion: @escaping (_ success: [[String: Any]]?, _ sdkError: [String: Any]?) -> Void) {
         Task {
             var products = [Product]()
             var productItems = [ProductData]()
@@ -229,27 +229,27 @@ extension AppCoinsPluginSDKError {
                 }
                 
                 let arrayOfDictionaries = productItems.map { $0.dictionaryRepresentation }
-                completion(arrayOfDictionaries)
+                completion(arrayOfDictionaries, nil)
             } catch let error as AppCoinsSDK.AppCoinsSDKError {
                 switch error {
                 case .networkError:
-                    completion([AppCoinsPluginSDKError.createErrorDict(error: error)])
+                    completion(nil, AppCoinsPluginSDKError.createErrorDict(error: error))
                 case .systemError:
-                    completion([AppCoinsPluginSDKError.createErrorDict(error: error)])
+                    completion(nil, AppCoinsPluginSDKError.createErrorDict(error: error))
                 case .notEntitled:
-                    completion([AppCoinsPluginSDKError.createErrorDict(error: error)])
+                    completion(nil, AppCoinsPluginSDKError.createErrorDict(error: error))
                 case .productUnavailable:
-                    completion([AppCoinsPluginSDKError.createErrorDict(error: error)])
+                    completion(nil, AppCoinsPluginSDKError.createErrorDict(error: error))
                 case .purchaseNotAllowed:
-                    completion([AppCoinsPluginSDKError.createErrorDict(error: error)])
+                    completion(nil, AppCoinsPluginSDKError.createErrorDict(error: error))
                 case .unknown:
-                    completion([AppCoinsPluginSDKError.createErrorDict(error: error)])
+                    completion(nil, AppCoinsPluginSDKError.createErrorDict(error: error))
                 }
             }
         }
     }
     
-    @objc public func purchase(sku: String, payload: String, completion: @escaping (_ success: [String: Any]? , _ sdkError: [String: Any]?) -> Void) {
+    @objc public func purchase(sku: String, payload: String, completion: @escaping (_ success: [String: Any]?, _ sdkError: [String: Any]?) -> Void) {
         Task {
             let products = try await Product.products(for: [sku])
             

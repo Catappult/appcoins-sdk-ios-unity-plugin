@@ -153,7 +153,7 @@ public class AppCoinsSDK
     private static extern void _isAvailable(JsonCallback callback);
 
     [DllImport("__Internal")]
-    private static extern void _getProducts(string[] skus, int count, JsonCallback callback);
+    private static extern void _getProducts(string[] skus, int count, ErrorHandlingJsonCallback callback);
 
     [DllImport("__Internal")]
     private static extern void _purchase(string sku, string payload, ErrorHandlingJsonCallback callback);
@@ -235,14 +235,37 @@ public class AppCoinsSDK
     }
 
     #if UNITY_IOS && !UNITY_EDITOR
-        [AOT.MonoPInvokeCallback(typeof(JsonCallback))]
-        private static void OnGetProductsCompleted(string json)
+        [AOT.MonoPInvokeCallback(typeof(ErrorHandlingJsonCallback))]
+        private static void OnGetProductsCompleted(string jsonSuccess, string jsonError)
         {
-            if (json.StartsWith("[{\"Error\":{")) {
-                Debug.Log("WE HAVE AN ERROR ON GETPRODUCTS C# " + json);
-            } else {
-                var response = JsonUtility.FromJson<GetProductsResponse>("{\"Products\":" + json + "}");
-                Instance._tcsGetProducts.SetResult(response.Products);
+
+            if (!string.IsNullOrEmpty(jsonError))
+            {
+                var sdkError = JsonUtility.FromJson<ErrorWrapper>(jsonError);
+                if (sdkError != null)
+                {
+                    Debug.LogError($"Error in get products: {sdkError.ToString()}");
+                }
+                else
+                {
+                    Debug.LogError("Failure in error JSON deserialization");
+                }
+            }
+            else if (!string.IsNullOrEmpty(jsonSuccess))
+            {
+                var response = JsonUtility.FromJson<GetProductsResponse>("{\"Products\":" + jsonSuccess + "}");
+                if (response != null)
+                {
+                    Instance._tcsGetProducts.SetResult(response.Products);
+                }
+                else
+                {
+                    Debug.LogError("Failure in success JSON deserialization");
+                }
+            }
+            else
+            {
+                Debug.LogError("Both callback parameters are empty or null");
             }
         }
     #endif
