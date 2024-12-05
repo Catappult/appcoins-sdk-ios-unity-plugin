@@ -162,7 +162,7 @@ public class AppCoinsSDK
     private static extern void _getAllPurchases(ErrorHandlingJsonCallback callback);
 
     [DllImport("__Internal")]
-    private static extern void _getLatestPurchase(string sku, JsonCallback callback);
+    private static extern void _getLatestPurchase(string sku, ErrorHandlingJsonCallback callback);
 
     [DllImport("__Internal")]
     private static extern void _getUnfinishedPurchases(JsonCallback callback);
@@ -376,7 +376,7 @@ public class AppCoinsSDK
 
     #endregion
 
-    #region Get Latest Purchase
+    #region Get Latest Purchase 
     private TaskCompletionSource<PurchaseData> _tcsGetLatestPurchase;
     public async Task<PurchaseData> GetLatestPurchase(string sku)
     {
@@ -390,11 +390,37 @@ public class AppCoinsSDK
     }
 
 #if UNITY_IOS && !UNITY_EDITOR
-    [AOT.MonoPInvokeCallback(typeof(JsonCallback))]
-    private static void OnGetLatestPurchaseCompleted(string json)
+    [AOT.MonoPInvokeCallback(typeof(ErrorHandlingJsonCallback))]
+    private static void OnGetLatestPurchaseCompleted(string jsonSuccess, string jsonError)
     {
-        var response = JsonUtility.FromJson<PurchaseData>(json);
-        Instance._tcsGetLatestPurchase.SetResult(response);
+        if (!string.IsNullOrEmpty(jsonError))
+        {
+            var sdkError = JsonUtility.FromJson<ErrorWrapper>(jsonError);
+            if (sdkError != null)
+            {
+                Debug.LogError($"Error in get latest purchase: {sdkError.ToString()}");
+            }
+            else
+            {
+                Debug.LogError("Failure in error JSON deserialization");
+            }
+        }
+        else if (!string.IsNullOrEmpty(jsonSuccess))
+        {
+            var response = JsonUtility.FromJson<PurchaseData>(jsonSuccess);
+            if (response != null)
+            {
+                Instance._tcsGetLatestPurchase.SetResult(response);
+            }
+            else
+            {
+                Debug.LogError("Failure in success JSON deserialization");
+            }
+        }
+        else
+        {
+            Debug.LogError("Both callback parameters are empty or null");
+        }
     }
 #endif
 
