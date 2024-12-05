@@ -165,7 +165,7 @@ public class AppCoinsSDK
     private static extern void _getLatestPurchase(string sku, ErrorHandlingJsonCallback callback);
 
     [DllImport("__Internal")]
-    private static extern void _getUnfinishedPurchases(JsonCallback callback);
+    private static extern void _getUnfinishedPurchases(ErrorHandlingJsonCallback callback);
 
     [DllImport("__Internal")]
     private static extern void _consumePurchase(string sku, JsonCallback callback);
@@ -440,11 +440,37 @@ public class AppCoinsSDK
     }
 
 #if UNITY_IOS && !UNITY_EDITOR
-    [AOT.MonoPInvokeCallback(typeof(JsonCallback))]
-    private static void OnGetUnfinishedPurchasesCompleted(string json)
+    [AOT.MonoPInvokeCallback(typeof(ErrorHandlingJsonCallback))]
+    private static void OnGetUnfinishedPurchasesCompleted(string jsonSuccess, string jsonError)
     {
-        var response = JsonUtility.FromJson<GetPurchasesResponse>("{\"Purchases\":" + json + "}");
-        Instance._tcsGetUnfinishedPurchases.SetResult(response.Purchases);
+        if (!string.IsNullOrEmpty(jsonError))
+        {
+            var sdkError = JsonUtility.FromJson<ErrorWrapper>(jsonError);
+            if (sdkError != null)
+            {
+                Debug.LogError($"Error in get unfinished purchases: {sdkError.ToString()}");
+            }
+            else
+            {
+                Debug.LogError("Failure in error JSON deserialization");
+            }
+        }
+        else if (!string.IsNullOrEmpty(jsonSuccess))
+        {
+            var response = JsonUtility.FromJson<GetPurchasesResponse>("{\"Purchases\":" + jsonSuccess + "}");
+            if (response != null)
+            {
+                Instance._tcsGetUnfinishedPurchases.SetResult(response.Purchases);
+            }
+            else
+            {
+                Debug.LogError("Failure in success JSON deserialization");
+            }
+        }
+        else
+        {
+            Debug.LogError("Both callback parameters are empty or null");
+        }
     }
 #endif
 

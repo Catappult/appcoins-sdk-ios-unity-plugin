@@ -181,21 +181,33 @@ extern "C" {
         }];
     }
 
-    void _getUnfinishedPurchases(JsonCallback callback) {
-        [UnityPlugin.shared getUnfinishedPurchasesWithCompletion:^(NSArray *data) {
-            NSError *error = nil;
-            NSData *jsonData = [NSJSONSerialization dataWithJSONObject:data options:0 error:&error];
-            if (!jsonData) {
-                NSLog(@"Failed to serialize JSON: %@", error);
-                if (callback) {
-                    callback(""); // Call with an empty string or error message
+    void _getUnfinishedPurchases(PurchaseJsonCallback callback) {
+        [UnityPlugin.shared getUnfinishedPurchasesWithCompletion:^(NSArray * _Nullable success, NSDictionary * _Nullable sdkError) {
+            NSString *jsonSuccess = nil;
+            NSString *jsonError = nil;
+
+            if (success) {
+                NSError *error = nil;
+                NSData *jsonData = [NSJSONSerialization dataWithJSONObject:success options:0 error:&error];
+                if (!jsonData) {
+                    NSLog(@"Failed to serialize success JSON: %@", error);
+                } else {
+                    jsonSuccess = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
                 }
-                return;
             }
 
-            NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+            if (sdkError) {
+                NSError *error = nil;
+                NSData *jsonData = [NSJSONSerialization dataWithJSONObject:sdkError options:0 error:&error];
+                if (!jsonData) {
+                    NSLog(@"Failed to serialize error JSON: %@", error);
+                } else {
+                    jsonError = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+                }
+            }
+
             if (callback) {
-                callback([jsonString UTF8String]);
+                callback(jsonSuccess ? [jsonSuccess UTF8String] : NULL, jsonError ? [jsonError UTF8String] : NULL);
             }
         }];
     }
