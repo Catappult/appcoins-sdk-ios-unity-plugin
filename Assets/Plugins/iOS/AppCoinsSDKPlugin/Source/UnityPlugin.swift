@@ -490,7 +490,7 @@ extension AppCoinsPluginSDKError {
         }
     }
     
-    @objc public func consumePurchase(sku: String, completion: @escaping ([String: Any]) -> Void) {
+    @objc public func consumePurchase(sku: String, completion: @escaping (_ success: [String: Any]?, _ sdkError: [String: Any]?) -> Void) {
         Task {
             do {
                 let purchases = try await Purchase.all()
@@ -498,25 +498,25 @@ extension AppCoinsPluginSDKError {
                 if let purchaseToConsume = purchases.first(where: { $0.sku == sku && $0.state == "ACKNOWLEDGED" }) {
                     try await purchaseToConsume.finish()
                     let dictionaryRepresentation = ["Success": true, "Error": ""]
-                    completion(dictionaryRepresentation)
+                    completion(dictionaryRepresentation, nil)
                 } else {
                     let dictionaryRepresentation = ["Success": false, "Error": "No purchase to consume found for the given SKU."]
-                    completion(dictionaryRepresentation)
+                    completion(dictionaryRepresentation, nil)
                 }
             } catch let error as AppCoinsSDK.AppCoinsSDKError {
                 switch error {
                 case .networkError:
-                    completion(AppCoinsPluginSDKError.createErrorDict(error: error))
+                    completion(nil, AppCoinsPluginSDKError.createErrorDict(error: error))
                 case .systemError:
-                    completion(AppCoinsPluginSDKError.createErrorDict(error: error))
+                    completion(nil, AppCoinsPluginSDKError.createErrorDict(error: error))
                 case .notEntitled:
-                    completion(AppCoinsPluginSDKError.createErrorDict(error: error))
+                    completion(nil, AppCoinsPluginSDKError.createErrorDict(error: error))
                 case .productUnavailable:
-                    completion(AppCoinsPluginSDKError.createErrorDict(error: error))
+                    completion(nil, AppCoinsPluginSDKError.createErrorDict(error: error))
                 case .purchaseNotAllowed:
-                    completion(AppCoinsPluginSDKError.createErrorDict(error: error))
+                    completion(nil, AppCoinsPluginSDKError.createErrorDict(error: error))
                 case .unknown:
-                    completion(AppCoinsPluginSDKError.createErrorDict(error: error))
+                    completion(nil, AppCoinsPluginSDKError.createErrorDict(error: error))
                 }
             }
         }

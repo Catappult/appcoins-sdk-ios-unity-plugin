@@ -168,7 +168,7 @@ public class AppCoinsSDK
     private static extern void _getUnfinishedPurchases(ErrorHandlingJsonCallback callback);
 
     [DllImport("__Internal")]
-    private static extern void _consumePurchase(string sku, JsonCallback callback);
+    private static extern void _consumePurchase(string sku, ErrorHandlingJsonCallback callback);
 
     [DllImport("__Internal")]
     private static extern IntPtr _getTestingWalletAddress();
@@ -494,11 +494,37 @@ public class AppCoinsSDK
     }
 
 #if UNITY_IOS && !UNITY_EDITOR
-    [AOT.MonoPInvokeCallback(typeof(JsonCallback))]
-    private static void OnConsumePurchaseCompleted(string json)
+    [AOT.MonoPInvokeCallback(typeof(ErrorHandlingJsonCallback))]
+    private static void OnConsumePurchaseCompleted(string jsonSuccess, string jsonError)
     {
-        var response = JsonUtility.FromJson<ConsumePurchaseResponse>(json);
-        Instance._tcsConsumePurchase.SetResult(response);
+        if (!string.IsNullOrEmpty(jsonError))
+        {
+            var sdkError = JsonUtility.FromJson<ErrorWrapper>(jsonError);
+            if (sdkError != null)
+            {
+                Debug.LogError($"Error in consume purchase: {sdkError.ToString()}");
+            }
+            else
+            {
+                Debug.LogError("Failure in error JSON deserialization");
+            }
+        }
+        else if (!string.IsNullOrEmpty(jsonSuccess))
+        {
+            var response = JsonUtility.FromJson<ConsumePurchaseResponse>(jsonSuccess);
+            if (response != null)
+            {
+                Instance._tcsConsumePurchase.SetResult(response);
+            }
+            else
+            {
+                Debug.LogError("Failure in success JSON deserialization");
+            }
+        }
+        else
+        {
+            Debug.LogError("Both callback parameters are empty or null");
+        }
     }
 #endif
 
