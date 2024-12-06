@@ -2,7 +2,7 @@
 #import "UnityFramework/UnityFramework-Swift.h"
 
 typedef void (*JsonCallback)(const char *json);
-typedef void (*PurchaseJsonCallback)(const char *jsonSuccess, const char *jsonError);
+typedef void (*ResultHandlingJsonCallback)(const char *jsonSuccess, const char *jsonError);
 
 extern "C" {
     void _handleDeepLink(const char *url, JsonCallback callback) {
@@ -45,7 +45,7 @@ extern "C" {
         }];
     }
 
-    void _getProducts(const char **skus, int count, PurchaseJsonCallback callback) {
+    void _getProducts(const char **skus, int count, ResultHandlingJsonCallback callback) {
         NSMutableArray *skuArray = [NSMutableArray arrayWithCapacity:count];
         for (int i = 0; i < count; i++) {
             [skuArray addObject:[NSString stringWithUTF8String:skus[i]]];
@@ -83,7 +83,7 @@ extern "C" {
         }];
     }
 
-    void _purchase(const char *sku, const char *payload, PurchaseJsonCallback callback) {
+    void _purchase(const char *sku, const char *payload, ResultHandlingJsonCallback callback) {
         NSString *skuString = [NSString stringWithUTF8String:sku];
         NSString *payloadString = [NSString stringWithUTF8String:payload];
         
@@ -117,7 +117,7 @@ extern "C" {
         }];
     }
 
-    void _getAllPurchases(PurchaseJsonCallback callback) {
+    void _getAllPurchases(ResultHandlingJsonCallback callback) {
         [UnityPlugin.shared getAllPurchasesWithCompletion:^(NSArray * _Nullable success, NSDictionary * _Nullable sdkError) {
             NSString *jsonSuccess = nil;
             NSString *jsonError = nil;
@@ -148,7 +148,7 @@ extern "C" {
         }];
     }
 
-    void _getLatestPurchase(const char *sku, PurchaseJsonCallback callback) {
+    void _getLatestPurchase(const char *sku, ResultHandlingJsonCallback callback) {
         NSString *skuString = [NSString stringWithUTF8String:sku];
 
         [UnityPlugin.shared getLatestPurchaseWithSku:skuString completion:^(NSDictionary * _Nullable success, NSDictionary * _Nullable sdkError) {
@@ -181,7 +181,7 @@ extern "C" {
         }];
     }
 
-    void _getUnfinishedPurchases(PurchaseJsonCallback callback) {
+    void _getUnfinishedPurchases(ResultHandlingJsonCallback callback) {
         [UnityPlugin.shared getUnfinishedPurchasesWithCompletion:^(NSArray * _Nullable success, NSDictionary * _Nullable sdkError) {
             NSString *jsonSuccess = nil;
             NSString *jsonError = nil;
@@ -212,7 +212,7 @@ extern "C" {
         }];
     }
 
-    void _consumePurchase(const char *sku, PurchaseJsonCallback callback) {
+    void _consumePurchase(const char *sku, ResultHandlingJsonCallback callback) {
         NSString *skuString = [NSString stringWithUTF8String:sku];
         
         [UnityPlugin.shared consumePurchaseWithSku:skuString completion:^(NSDictionary * _Nullable success, NSDictionary * _Nullable sdkError) {

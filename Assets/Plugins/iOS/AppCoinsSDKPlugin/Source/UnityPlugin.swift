@@ -155,8 +155,8 @@ extension AppCoinsPluginSDKError {
         }
     }
     
-    static func createDict(errorType: String, message: String, description: String, requestUrl: String? = "",
-                           requestBody: String? = "", requestMethod: String? = "", requestResponseData: String? = "", requestStatusCode: String? = "" ) -> [String: Any] {
+    static func createDict(errorType: String, message: String, description: String, requestUrl: String? = nil,
+                           requestBody: String? = nil, requestMethod: String? = nil, requestResponseData: String? = nil, requestStatusCode: String? = nil ) -> [String: Any] {
         
         let errorDict: [String: Any] = [
             "errorType": errorType,
@@ -172,7 +172,8 @@ extension AppCoinsPluginSDKError {
                 ]
             ]
         ]
-        return ["Error": errorDict]
+        
+        return errorDict
     }
 }
 
