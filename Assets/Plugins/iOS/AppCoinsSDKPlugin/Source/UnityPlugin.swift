@@ -98,7 +98,6 @@ public struct AppCoinsPluginSDKError {
         public let responseData: String
         public let statusCode: String
     }
-    
 }
 
 extension AppCoinsPluginSDKError {
@@ -172,7 +171,7 @@ extension AppCoinsPluginSDKError {
                 ]
             ]
         ]
-        
+
         return errorDict
     }
 }

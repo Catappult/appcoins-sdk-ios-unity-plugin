@@ -231,7 +231,7 @@ public class AppCoinsSDK
             return await Task.FromResult(Result<bool, AppCoinsPluginSDKError>.CreateError(
                 AppCoinsPluginSDKError.CreateAppCoinsPluginSDKError(
                 errorType: "Error", 
-                message: "AppCoins SDK", 
+                message: "AppCoins SDK Availability", 
                 description: "AppCoins SDK is not available at AppCoinsSDK.cs:IsAvailable")
             ));
         #endif
@@ -249,7 +249,7 @@ public class AppCoinsSDK
                 Instance._tcsIsAvailable.SetResult(Result<bool, AppCoinsPluginSDKError>.CreateError(
                     AppCoinsPluginSDKError.CreateAppCoinsPluginSDKError(
                     errorType: "Error", 
-                    message: "AppCoins SDK", 
+                    message: "AppCoins SDK Availability", 
                     description: "AppCoins SDK is not available at AppCoinsSDK.cs:IsAvailable")
                 ));
             }
@@ -272,7 +272,7 @@ public class AppCoinsSDK
             return await Task.FromResult(Result<ProductData[], AppCoinsPluginSDKError>.CreateError(
                 AppCoinsPluginSDKError.CreateAppCoinsPluginSDKError(
                     errorType: "Error", 
-                    message: "AppCoinsSDK", 
+                    message: "Failed to get products", 
                     description: "AppCoins SDK is not available at AppCoinsSDK.cs:GetProducts")
                 ));
         #endif
@@ -294,7 +294,7 @@ public class AppCoinsSDK
                 Instance._tcsGetProducts.SetResult(Result<ProductData[], AppCoinsPluginSDKError>.CreateError(
                     AppCoinsPluginSDKError.CreateAppCoinsPluginSDKError(
                     errorType: "Error", 
-                    message: "UnityPluginSDK", 
+                    message: "Failed to get products", 
                     description: "Failure in error JSON deserialization at AppCoinsSDK.cs:GetProducts")
                 ));
             }
@@ -311,7 +311,7 @@ public class AppCoinsSDK
                 Instance._tcsGetProducts.SetResult(Result<ProductData[], AppCoinsPluginSDKError>.CreateError(
                     AppCoinsPluginSDKError.CreateAppCoinsPluginSDKError(
                     errorType: "Error", 
-                    message: "UnityPluginSDK", 
+                    message: "Failed to get products", 
                     description: "Failure in success JSON deserialization at AppCoinsSDK.cs:GetProducts")
                 ));
             }
@@ -321,7 +321,7 @@ public class AppCoinsSDK
             Instance._tcsGetProducts.SetResult(Result<ProductData[], AppCoinsPluginSDKError>.CreateError(
                     AppCoinsPluginSDKError.CreateAppCoinsPluginSDKError(
                     errorType: "Error", 
-                    message: "UnityPluginSDK", 
+                    message: "Failed to get products", 
                     description: "Both callback parameters are empty or null at AppCoinsSDK.cs:GetProducts")
                 ));
         }
@@ -342,7 +342,7 @@ public class AppCoinsSDK
                 return await Task.FromResult(Result<PurchaseResponse, AppCoinsPluginSDKError>.CreateError(
                     AppCoinsPluginSDKError.CreateAppCoinsPluginSDKError(
                         errorType: "Error", 
-                        message: "AppCoinsSDK", 
+                        message: "Failed to purchase", 
                         description: "AppCoins SDK is not available at AppCoinsSDK.cs:Purchase")
                     ));
         #endif
@@ -364,7 +364,7 @@ public class AppCoinsSDK
                 Instance._tcsPurchase.SetResult(Result<PurchaseResponse, AppCoinsPluginSDKError>.CreateError(
                     AppCoinsPluginSDKError.CreateAppCoinsPluginSDKError(
                     errorType: "Error", 
-                    message: "UnityPluginSDK", 
+                    message: "Failed to purchase", 
                     description: "Failure in error JSON deserialization at AppCoinsSDK.cs:Purchase")
                 ));
             }
@@ -381,7 +381,7 @@ public class AppCoinsSDK
                 Instance._tcsPurchase.SetResult(Result<PurchaseResponse, AppCoinsPluginSDKError>.CreateError(
                     AppCoinsPluginSDKError.CreateAppCoinsPluginSDKError(
                     errorType: "Error", 
-                    message: "UnityPluginSDK", 
+                    message: "Failed to purchase", 
                     description: "Failure in success JSON deserialization at AppCoinsSDK.cs:Purchase")
                 ));
             }
@@ -391,7 +391,7 @@ public class AppCoinsSDK
             Instance._tcsPurchase.SetResult(Result<PurchaseResponse, AppCoinsPluginSDKError>.CreateError(
                     AppCoinsPluginSDKError.CreateAppCoinsPluginSDKError(
                     errorType: "Error", 
-                    message: "UnityPluginSDK", 
+                    message: "Failed to purchase", 
                     description: "Both callback parameters are empty or null at AppCoinsSDK.cs:Purchase")
             ));
         }
@@ -412,7 +412,7 @@ public class AppCoinsSDK
             return await Task.FromResult(Result<PurchaseData[], AppCoinsPluginSDKError>.CreateError(
                 AppCoinsPluginSDKError.CreateAppCoinsPluginSDKError(
                     errorType: "Error", 
-                    message: "AppCoinsSDK", 
+                    message: "Failed to get all purchases", 
                     description: "AppCoins SDK is not available at AppCoinsSDK.cs:GetAllPurchases")
             ));
         #endif
@@ -434,7 +434,7 @@ public class AppCoinsSDK
                     Instance._tcsGetAllPurchases.SetResult(Result<PurchaseData[], AppCoinsPluginSDKError>.CreateError(
                         AppCoinsPluginSDKError.CreateAppCoinsPluginSDKError(
                             errorType: "Error", 
-                            message: "AppCoinsSDK", 
+                            message: "Failed to get all purchases", 
                             description: "Failure in error JSON deserialization at AppCoinsSDK.cs:GetAllPurchases")
                     ));
                 }
@@ -451,7 +451,7 @@ public class AppCoinsSDK
                     Instance._tcsGetAllPurchases.SetResult(Result<PurchaseData[], AppCoinsPluginSDKError>.CreateError(
                         AppCoinsPluginSDKError.CreateAppCoinsPluginSDKError(
                             errorType: "Error", 
-                            message: "AppCoinsSDK", 
+                            message: "Failed to get all purchases", 
                             description: "Failure in success JSON deserialization at AppCoinsSDK.cs:GetAllPurchases")
                     ));
                 }
@@ -461,7 +461,7 @@ public class AppCoinsSDK
                 Instance._tcsPurchase.SetResult(Result<PurchaseResponse, AppCoinsPluginSDKError>.CreateError(
                     AppCoinsPluginSDKError.CreateAppCoinsPluginSDKError(
                         errorType: "Error", 
-                        message: "UnityPluginSDK", 
+                        message: "Failed to get all purchases", 
                         description: "Both callback parameters are empty or null at AppCoinsSDK.cs:GetAllPurchases")
                 ));
             }
@@ -482,7 +482,7 @@ public class AppCoinsSDK
                 return await Task.FromResult(Result<PurchaseData, AppCoinsPluginSDKError>.CreateError(
                     AppCoinsPluginSDKError.CreateAppCoinsPluginSDKError(
                         errorType: "Error", 
-                        message: "AppCoinsSDK", 
+                        message: "Failed to get latest purchase", 
                         description: "AppCoins SDK is not available at AppCoinsSDK.cs:GetLatestPurchase")
                 ));
         #endif
@@ -504,7 +504,7 @@ public class AppCoinsSDK
                     Instance._tcsGetLatestPurchase.SetResult(Result<PurchaseData, AppCoinsPluginSDKError>.CreateError(
                         AppCoinsPluginSDKError.CreateAppCoinsPluginSDKError(
                             errorType: "Error", 
-                            message: "AppCoinsSDK", 
+                            message: "Failed to get latest purchase", 
                             description: "Failure in error JSON deserialization at AppCoinsSDK.cs:GetLatestPurchase")
                     ));
                 }
@@ -521,7 +521,7 @@ public class AppCoinsSDK
                     Instance._tcsGetLatestPurchase.SetResult(Result<PurchaseData, AppCoinsPluginSDKError>.CreateError(
                         AppCoinsPluginSDKError.CreateAppCoinsPluginSDKError(
                             errorType: "Error", 
-                            message: "UnityPluginSDK", 
+                            message: "Failed to get latest purchase", 
                             description: "Failure in success JSON deserialization at AppCoinsSDK.cs:GetLatestPurchase")
                     ));
                 }
@@ -531,7 +531,7 @@ public class AppCoinsSDK
                 Instance._tcsGetLatestPurchase.SetResult(Result<PurchaseData, AppCoinsPluginSDKError>.CreateError(
                         AppCoinsPluginSDKError.CreateAppCoinsPluginSDKError(
                             errorType: "Error", 
-                            message: "UnityPluginSDK", 
+                            message: "Failed to get latest purchase", 
                             description: "Both callback parameters are empty or null at AppCoinsSDK.cs:GetLatestPurchase")
                 ));
             }
@@ -552,7 +552,7 @@ public class AppCoinsSDK
                 return await Task.FromResult(Result<PurchaseData[], AppCoinsPluginSDKError>.CreateError(
                     AppCoinsPluginSDKError.CreateAppCoinsPluginSDKError(
                         errorType: "Error", 
-                        message: "AppCoinsSDK", 
+                        message: "Failed to get unifinished purchases", 
                         description: "AppCoins SDK is not available at AppCoinsSDK.cs:GetUnfinishedPurchases")
                 ));
         #endif
@@ -574,7 +574,7 @@ public class AppCoinsSDK
                     Instance._tcsGetUnfinishedPurchases.SetResult(Result<PurchaseData[], AppCoinsPluginSDKError>.CreateError(
                         AppCoinsPluginSDKError.CreateAppCoinsPluginSDKError(
                             errorType: "Error", 
-                            message: "UnityPluginSDK", 
+                            message: "Failed to get unifinished purchases", 
                             description: "Failure in error JSON deserialization at AppCoinsSDK.cs:GetUnfinishedPurchases")
                     ));
                 }
@@ -591,7 +591,7 @@ public class AppCoinsSDK
                     Instance._tcsGetUnfinishedPurchases.SetResult(Result<PurchaseData[], AppCoinsPluginSDKError>.CreateError(
                         AppCoinsPluginSDKError.CreateAppCoinsPluginSDKError(
                             errorType: "Error", 
-                            message: "UnityPluginSDK", 
+                            message: "Failed to get unifinished purchases", 
                             description: "Failure in success JSON deserialization at AppCoinsSDK.cs:GetUnfinishedPurchases")
                     ));
                 }
@@ -601,7 +601,7 @@ public class AppCoinsSDK
                 Instance._tcsGetUnfinishedPurchases.SetResult(Result<PurchaseData[], AppCoinsPluginSDKError>.CreateError(
                         AppCoinsPluginSDKError.CreateAppCoinsPluginSDKError(
                             errorType: "Error", 
-                            message: "UnityPluginSDK", 
+                            message: "Failed to get unifinished purchases", 
                             description: "Both callback parameters are empty or null at AppCoinsSDK.cs:GetUnfinishedPurchases")
                 ));
             }
@@ -622,7 +622,7 @@ public class AppCoinsSDK
             return await Task.FromResult(Result<ConsumePurchaseResponse, AppCoinsPluginSDKError>.CreateError(
                 AppCoinsPluginSDKError.CreateAppCoinsPluginSDKError(
                     errorType: "Error", 
-                    message: "AppCoinsSDK", 
+                    message: "Failed to consume purchase", 
                     description: "AppCoins SDK is not available at AppCoinsSDK.cs:ConsumePurchase")
             ));
         #endif
@@ -644,7 +644,7 @@ public class AppCoinsSDK
                     Instance._tcsConsumePurchase.SetResult(Result<ConsumePurchaseResponse, AppCoinsPluginSDKError>.CreateError(
                         AppCoinsPluginSDKError.CreateAppCoinsPluginSDKError(
                             errorType: "Error", 
-                            message: "UnityPluginSDK", 
+                            message: "Failed to consume purchase", 
                             description: "Failure in error JSON deserialization at AppCoinsSDK.cs:ConsumePurchase")
                     ));
                 }
@@ -661,7 +661,7 @@ public class AppCoinsSDK
                     Instance._tcsConsumePurchase.SetResult(Result<ConsumePurchaseResponse, AppCoinsPluginSDKError>.CreateError(
                         AppCoinsPluginSDKError.CreateAppCoinsPluginSDKError(
                             errorType: "Error", 
-                            message: "UnityPluginSDK", 
+                            message: "Failed to consume purchase", 
                             description: "Failure in success JSON deserialization at AppCoinsSDK.cs:ConsumePurchase")
                     ));
                 }
@@ -671,7 +671,7 @@ public class AppCoinsSDK
                 Instance._tcsConsumePurchase.SetResult(Result<ConsumePurchaseResponse, AppCoinsPluginSDKError>.CreateError(
                         AppCoinsPluginSDKError.CreateAppCoinsPluginSDKError(
                             errorType: "Error", 
-                            message: "UnityPluginSDK", 
+                            message: "Failed to consume purchase", 
                             description: "Both callback parameters are empty or null at AppCoinsSDK.cs:ConsumePurchase")
                 ));
             }
@@ -680,6 +680,7 @@ public class AppCoinsSDK
     #endregion
 
     #region Get Testing Wallet Address
+    
     public string GetTestingWalletAddress()
     {
         IntPtr ptr = _getTestingWalletAddress();
