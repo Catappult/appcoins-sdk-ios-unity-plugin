@@ -179,4 +179,12 @@ extern "C" {
             return NULL;
         }
     }
+
+    void _startPurchaseUpdates() {
+        [UnityPlugin.shared startObservingPurchases];
+    }
+
+    void UnitySendMessageBridge(const char *objectName, const char *methodName, const char *message) {
+        UnitySendMessage(objectName, methodName, message);
+    }
 }

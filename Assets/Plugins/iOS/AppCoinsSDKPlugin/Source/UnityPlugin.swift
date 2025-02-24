@@ -1,5 +1,6 @@
 import Foundation
 import AppCoinsSDK
+import UIKit
 
 public struct ProductData {
     public let sku: String
@@ -9,9 +10,17 @@ public struct ProductData {
     public let priceValue: String
     public let priceLabel: String
     public let priceSymbol: String
-}
-
-extension ProductData {
+    
+    init(product: Product) {
+        self.sku = product.sku
+        self.title = product.title
+        self.description = product.description ?? ""
+        self.priceCurrency = product.priceCurrency
+        self.priceValue = product.priceValue
+        self.priceLabel = product.priceLabel
+        self.priceSymbol = product.priceSymbol
+    }
+    
     var dictionaryRepresentation: [String: Any] {
         var dict = [String: Any]()
         dict["Sku"] = sku
@@ -25,6 +34,7 @@ extension ProductData {
     }
 }
 
+
 public struct PurchaseData {
     public let uid: String
     public let sku: String
@@ -33,11 +43,28 @@ public struct PurchaseData {
     public let payload: String?
     public let created: String
     public let verification: PurchaseVerification
+    
+    init(purchase: Purchase) {
+        self.uid = purchase.uid
+        self.sku = purchase.sku
+        self.state = purchase.state
+        self.orderUid = purchase.orderUid
+        self.payload = purchase.payload
+        self.created = purchase.created
+        self.verification = PurchaseVerification(verification: purchase.verification)
+            
+    }
 
     public struct PurchaseVerification {
         public let type: String
         public let data: PurchaseVerificationData
         public let signature: String
+        
+        init(verification: Purchase.PurchaseVerification) {
+            self.type = verification.type
+            self.data = PurchaseVerificationData(verificationData: verification.data)
+            self.signature = verification.signature
+        }
     }
     
     public struct PurchaseVerificationData: Codable {
@@ -48,10 +75,18 @@ public struct PurchaseData {
         public let purchaseToken: String
         public let purchaseState: Int
         public let developerPayload: String
+        
+        init(verificationData: Purchase.PurchaseVerificationData) {
+            self.orderId = verificationData.orderId
+            self.packageName = verificationData.packageName
+            self.productId = verificationData.productId
+            self.purchaseTime = verificationData.purchaseTime
+            self.purchaseToken = verificationData.purchaseToken
+            self.purchaseState = verificationData.purchaseState
+            self.developerPayload = verificationData.developerPayload
+        }
     }
-}
-
-extension PurchaseData {
+    
     var dictionaryRepresentation: [String: Any] {
         var purchaseDictionary = [String: Any]()
         purchaseDictionary["UID"] = uid
@@ -81,60 +116,32 @@ extension PurchaseData {
     }
 }
 
+
+@objcMembers
 @objc public class UnityPlugin : NSObject {
     
     @objc public static let shared = UnityPlugin()
 
     @objc public func handleDeepLink(url: String, completion: @escaping ([String: Any]) -> Void) {
         Task {
-            if let urlObject = URL(string: url) {
-                if AppcSDK.handle(redirectURL: urlObject) {
-                    completion(["Success": true])
-                }
-                else {
-                    completion(["Success": false])
-                }
-            } else {
-                // Handle the case where the URL conversion fails
-                completion(["Success": false, "Error": "Invalid URL"])
+            guard let urlObject = URL(string: url) else {
+                return completion(["Success": false, "Error": "Invalid URL"])
             }
+            completion(["Success": AppcSDK.handle(redirectURL: urlObject)])
         }
     }
 
     @objc public func isAvailable(completion: @escaping ([String: Any]) -> Void) {
         Task {
-            let sdkAvailable = await AppcSDK.isAvailable()
-            let dictionaryRepresentation = ["Available": sdkAvailable]
-            completion(dictionaryRepresentation)
+            completion(["Available": await AppcSDK.isAvailable()])
         }
     }
 
     @objc public func getProducts(skus: [String], completion: @escaping ([[String: Any]]) -> Void) {
         Task {
-            var products = [Product]()
-            var productItems = [ProductData]()
-            
             do {
-                if (skus.isEmpty) {
-                    products = try await Product.products()
-                } else {
-                    products = try await Product.products(for: skus)
-                }
-                
-                productItems = products.map { product in
-                    ProductData(
-                        sku: product.sku,
-                        title: product.title,
-                        description: product.description ?? "",
-                        priceCurrency: product.priceCurrency,
-                        priceValue: product.priceValue,
-                        priceLabel: product.priceLabel,
-                        priceSymbol: product.priceSymbol
-                    )
-                }
-                
-                let arrayOfDictionaries = productItems.map { $0.dictionaryRepresentation }
-                completion(arrayOfDictionaries)
+                let products = try await (skus.isEmpty ? Product.products() : Product.products(for: skus))
+                completion( products.map { ProductData(product: $0).dictionaryRepresentation } )
             } catch {
                 completion([])
             }
@@ -143,118 +150,43 @@ extension PurchaseData {
 
     @objc public func purchase(sku: String, payload: String, completion: @escaping ([String: Any]) -> Void) {
         Task {
-            let products = try await Product.products(for: [sku])
-
-            let payloadToSend = payload.isEmpty ? nil : payload
-            let result = await products.first?.purchase(payload: payloadToSend)
-            
-            switch result {
-                case .success(let verificationResult):
-                     switch verificationResult {
-                           case .verified(let purchase):
-                                let state = "success"
-                                
-                                let purchaseData = PurchaseData(
-                                    uid: purchase.uid,
-                                    sku: purchase.sku,
-                                    state: purchase.state,
-                                    orderUid: purchase.orderUid,
-                                    payload: purchase.payload,
-                                    created: purchase.created,
-                                    verification: PurchaseData.PurchaseVerification(
-                                        type: purchase.verification.type,
-                                        data: PurchaseData.PurchaseVerificationData(
-                                            orderId: purchase.verification.data.orderId,
-                                            packageName: purchase.verification.data.packageName,
-                                            productId: purchase.verification.data.productId,
-                                            purchaseTime: purchase.verification.data.purchaseTime,
-                                            purchaseToken: purchase.verification.data.purchaseToken,
-                                            purchaseState: purchase.verification.data.purchaseState,
-                                            developerPayload: purchase.verification.data.developerPayload
-                                        ),
-                                        signature: purchase.verification.signature
-                                    )
-                                ).dictionaryRepresentation
-                         
-                                completion(["State": state, "Error": "", "Purchase": purchaseData])
-                         
-                           case .unverified(let purchase, let verificationError):
-                                let state = "unverified"
-                                let errorMessage = verificationError.localizedDescription
-                         
-                                let purchaseData = PurchaseData(
-                                     uid: purchase.uid,
-                                     sku: purchase.sku,
-                                     state: purchase.state,
-                                     orderUid: purchase.orderUid,
-                                     payload: purchase.payload,
-                                     created: purchase.created,
-                                     verification: PurchaseData.PurchaseVerification(
-                                         type: purchase.verification.type,
-                                         data: PurchaseData.PurchaseVerificationData(
-                                             orderId: purchase.verification.data.orderId,
-                                             packageName: purchase.verification.data.packageName,
-                                             productId: purchase.verification.data.productId,
-                                             purchaseTime: purchase.verification.data.purchaseTime,
-                                             purchaseToken: purchase.verification.data.purchaseToken,
-                                             purchaseState: purchase.verification.data.purchaseState,
-                                             developerPayload: purchase.verification.data.developerPayload
-                                         ),
-                                         signature: purchase.verification.signature
-                                     )
-                                ).dictionaryRepresentation
-                                
-                                completion(["State": state, "Error": errorMessage, "Purchase": purchaseData])
-                     }
-                case .pending:
-                    let state = "pending"
-                    completion(["State": state, "Error": "", "Purchase": ""])
-                case .userCancelled:
-                    let state = "user_cancelled"
-                    completion(["State": state, "Error": "", "Purchase": ""])
-                case .failed(let error):
-                    let state = "failed"
-                    let errorMessage = error.localizedDescription
-                    completion(["State": state, "Error": errorMessage, "Purchase": ""])
-                case .none:
-                    let state = "none"
-                    completion(["State": state, "Error": "", "Purchase": ""])
+            do {
+                guard let product = try await Product.products(for: [sku]).first else {
+                    return completion(["State": "failed", "Error": "Product not found", "Purchase": ""])
                 }
+
+                let result = await product.purchase(payload: payload.isEmpty ? nil : payload)
+                
+                let response: [String: Any] = {
+                    switch result {
+                    case .success(let verificationResult):
+                        switch verificationResult {
+                        case .verified(let purchase):
+                            return ["State": "success", "Error": "", "Purchase": PurchaseData(purchase: purchase).dictionaryRepresentation]
+                        case .unverified(let purchase, let verificationError):
+                            return ["State": "unverified", "Error": verificationError.localizedDescription, "Purchase": PurchaseData(purchase: purchase).dictionaryRepresentation]
+                        }
+                    case .pending:
+                        return ["State": "pending", "Error": "", "Purchase": ""]
+                    case .userCancelled:
+                        return ["State": "user_cancelled", "Error": "", "Purchase": ""]
+                    case .failed(let error):
+                        return ["State": "failed", "Error": error.localizedDescription, "Purchase": ""]
+                    }
+                }()
+                
+                completion(response)
+            } catch {
+                completion(["State": "failed", "Error": error.localizedDescription, "Purchase": ""])
+            }
         }
     }
 
     @objc public func getAllPurchases(completion: @escaping ([[String: Any]]) -> Void) {
         Task {
-            var purchaseItems = [PurchaseData]()
-            
             do {
                 let purchases = try await Purchase.all()
-                purchaseItems = purchases.map { purchase in
-                    PurchaseData(
-                        uid: purchase.uid,
-                        sku: purchase.sku,
-                        state: purchase.state,
-                        orderUid: purchase.orderUid,
-                        payload: purchase.payload,
-                        created: purchase.created,
-                        verification: PurchaseData.PurchaseVerification(
-                            type: purchase.verification.type,
-                            data: PurchaseData.PurchaseVerificationData(
-                                orderId: purchase.verification.data.orderId,
-                                packageName: purchase.verification.data.packageName,
-                                productId: purchase.verification.data.productId,
-                                purchaseTime: purchase.verification.data.purchaseTime,
-                                purchaseToken: purchase.verification.data.purchaseToken,
-                                purchaseState: purchase.verification.data.purchaseState,
-                                developerPayload: purchase.verification.data.developerPayload
-                            ),
-                            signature: purchase.verification.signature
-                        )
-                    )
-                }
-                
-                let arrayOfDictionaries = purchaseItems.map { $0.dictionaryRepresentation }
-                completion(arrayOfDictionaries)
+                completion(purchases.map { PurchaseData(purchase: $0).dictionaryRepresentation })
             } catch {
                 completion([])
             }
@@ -263,64 +195,20 @@ extension PurchaseData {
 
     @objc public func getLatestPurchase(sku: String, completion: @escaping ([String: Any]) -> Void) {
         Task {
-            let purchase = try? await Purchase.latest(sku: sku)
-            let purchaseItem = PurchaseData(
-                uid: purchase?.uid ?? "",
-                sku: purchase?.sku ?? "",
-                state: purchase?.state ?? "",
-                orderUid: purchase?.orderUid ?? "",
-                payload: purchase?.payload ?? "",
-                created: purchase?.created ?? "",
-                verification: PurchaseData.PurchaseVerification(
-                    type: purchase?.verification.type ?? "",
-                    data: PurchaseData.PurchaseVerificationData(
-                        orderId: purchase?.verification.data.orderId ?? "",
-                        packageName: purchase?.verification.data.packageName ?? "",
-                        productId: purchase?.verification.data.productId ?? "",
-                        purchaseTime: purchase?.verification.data.purchaseTime ?? 0,
-                        purchaseToken: purchase?.verification.data.purchaseToken ?? "",
-                        purchaseState: purchase?.verification.data.purchaseState ?? 0,
-                        developerPayload: purchase?.verification.data.developerPayload ?? ""
-                    ),
-                    signature: purchase?.verification.signature ?? ""
-                )
-            )
-            completion(purchaseItem.dictionaryRepresentation)
+            guard let purchase = try? await Purchase.latest(sku: sku) else {
+                completion([:])
+                return
+            }
+        
+            completion(PurchaseData(purchase: purchase).dictionaryRepresentation)
         }
     }
 
     @objc public func getUnfinishedPurchases(completion: @escaping ([[String: Any]]) -> Void) {
         Task {
-            var purchaseItems = [PurchaseData]()
-            
             do {
                 let purchases = try await Purchase.unfinished()
-                purchaseItems = purchases.map { purchase in
-                    PurchaseData(
-                        uid: purchase.uid,
-                        sku: purchase.sku,
-                        state: purchase.state,
-                        orderUid: purchase.orderUid,
-                        payload: purchase.payload,
-                        created: purchase.created,
-                        verification: PurchaseData.PurchaseVerification(
-                            type: purchase.verification.type,
-                            data: PurchaseData.PurchaseVerificationData(
-                                orderId: purchase.verification.data.orderId,
-                                packageName: purchase.verification.data.packageName,
-                                productId: purchase.verification.data.productId,
-                                purchaseTime: purchase.verification.data.purchaseTime,
-                                purchaseToken: purchase.verification.data.purchaseToken,
-                                purchaseState: purchase.verification.data.purchaseState,
-                                developerPayload: purchase.verification.data.developerPayload
-                            ),
-                            signature: purchase.verification.signature
-                        )
-                    )
-                }
-                
-                let arrayOfDictionaries = purchaseItems.map { $0.dictionaryRepresentation }
-                completion(arrayOfDictionaries)
+                completion(purchases.map { PurchaseData(purchase: $0).dictionaryRepresentation })
             } catch {
                 completion([])
             }
@@ -330,19 +218,14 @@ extension PurchaseData {
     @objc public func consumePurchase(sku: String, completion: @escaping ([String: Any]) -> Void) {
         Task {
             do {
-                let purchases = try await Purchase.all()
-                
-                if let purchaseToConsume = purchases.first(where: { $0.sku == sku && $0.state == "ACKNOWLEDGED" }) {
-                    try await purchaseToConsume.finish()
-                    let dictionaryRepresentation = ["Success": true, "Error": ""]
-                    completion(dictionaryRepresentation)
-                } else {
-                    let dictionaryRepresentation = ["Success": false, "Error": "No purchase to consume found for the given SKU."]
-                    completion(dictionaryRepresentation)
+                guard let purchase = try await Purchase.all().first(where: { $0.sku == sku && $0.state == "ACKNOWLEDGED" }) else {
+                    return completion(["Success": false, "Error": "No purchase to consume found for the given SKU."])
                 }
+                
+                try await purchase.finish()
+                completion(["Success": true, "Error": ""])
             } catch {
-                let dictionaryRepresentation = ["Success": false, "Error": "An error occurred: \(error.localizedDescription)"]
-                completion(dictionaryRepresentation)
+                completion(["Success": false, "Error": "An error occurred: \(error.localizedDescription)"])
             }
         }
     }
@@ -350,4 +233,63 @@ extension PurchaseData {
     @objc public func getTestingWalletAddress() -> String? {
         return Sandbox.getTestingWalletAddress()
     }
+    
+    // The Task that listens for Purchase.updates
+    private var task: Task<Void, Never>?
+    // Flag to track if we're already observing
+    private var isObserving = false
+
+    /// Start observing purchases and send them to Unity via UnitySendMessage
+    @objc public func startObservingPurchases() {
+        guard !isObserving else { return }
+        isObserving = true
+
+        task = Task(priority: .background) {
+            // Because Purchase.updates yields VerificationResult<Purchase> in your snippet
+            for await verificationResult in Purchase.updates {
+                
+                // 1) Build a dictionary describing the verification result
+                let response: [String: Any] = {
+                    switch verificationResult {
+                    case .verified(let purchase):
+                        return [
+                            "State": "success",
+                            "Error": "",
+                            "Purchase": PurchaseData(purchase: purchase).dictionaryRepresentation
+                        ]
+                    case .unverified(let purchase, let verificationError):
+                        return [
+                            "State": "unverified",
+                            "Error": verificationError.localizedDescription,
+                            "Purchase": PurchaseData(purchase: purchase).dictionaryRepresentation
+                        ]
+                    }
+                }()
+                
+                // 2) Serialize that dictionary to JSON
+                guard let cString = dictionaryToCString(response) else {
+                    continue // if serialization fails, skip
+                }
+
+                // 3) Send to Unity (the third parameter must be a C-string)
+                UnitySendMessageBridge("AppCoinsPurchaseManager", "OnPurchaseUpdated", cString)
+            }
+        }
+    }
+    
+    private func dictionaryToCString(_ dict: [String: Any]) -> UnsafeMutablePointer<Int8>? {
+        do {
+            let data = try JSONSerialization.data(withJSONObject: dict, options: [])
+            if let jsonString = String(data: data, encoding: .utf8) {
+                return strdup(jsonString) // Allocate C string from Swift string
+            }
+        } catch {
+            print("Failed to serialize dictionary: \(error)")
+        }
+        return strdup("{}") // Return "{}" if serialization fails
+    }
 }
+
+// Declare the bridge function to make it accessible in Swift
+@_silgen_name("UnitySendMessageBridge")
+func UnitySendMessageBridge(_ objectName: UnsafePointer<Int8>, _ methodName: UnsafePointer<Int8>, _ message: UnsafePointer<Int8>)
