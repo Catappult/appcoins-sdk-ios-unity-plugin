@@ -272,7 +272,7 @@ public struct PurchaseData {
                 }
 
                 // 3) Send to Unity (the third parameter must be a C-string)
-                UnitySendMessageBridge("AppCoinsPurchaseManager", "OnPurchaseUpdated", cString)
+                UnitySendMessageBridge("AppCoinsPurchaseManager", "OnPurchaseUpdatedInternal", cString)
             }
         }
     }
