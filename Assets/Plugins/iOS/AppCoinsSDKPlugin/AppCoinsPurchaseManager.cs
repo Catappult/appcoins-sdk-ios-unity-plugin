@@ -8,6 +8,7 @@ public class AppCoinsPurchaseManager : MonoBehaviour
 {
     private static AppCoinsPurchaseManager _instance;
 
+    // Subscribe to get notified of non-direct IAP
     public static event Action<PurchaseResponse> OnPurchaseUpdated;
 
     public static AppCoinsPurchaseManager Instance
@@ -37,16 +38,13 @@ public class AppCoinsPurchaseManager : MonoBehaviour
         AppCoinsSDK.StartObservingPurchases();
     }
 
-    // This method name must match "OnPurchaseUpdated" from Swift
+    // This method name must match "OnPurchaseUpdatedInternal" from Swift
     public void OnPurchaseUpdatedInternal(string purchaseJson)
     {
-        Debug.Log($"Received Purchase Update: {purchaseJson}");
         PurchaseResponse purchaseResponse = JsonUtility.FromJson<PurchaseResponse>(purchaseJson);
-        
         NotifyPurchase(purchaseResponse);
     }
 
-    // Call this method when a purchase is updated
     public static void NotifyPurchase(PurchaseResponse purchaseResponse)
     {
         OnPurchaseUpdated?.Invoke(purchaseResponse);
