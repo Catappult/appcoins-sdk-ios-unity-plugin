@@ -18,8 +18,7 @@ public static class SwiftPostProcess
 
             var targetGuid = proj.TargetGuidByName(PBXProject.GetUnityTestTargetName());
 
-            // var appCoinsGuid = proj.AddRemotePackageReferenceAtVersionUpToNextMajor("https://github.com/Catappult/appcoins-sdk-ios.git", "1.2.0");
-            var appCoinsGuid = proj.AddRemotePackageReferenceAtBranch("https://github.com/Catappult/appcoins-sdk-ios.git", "feature/APP-3171_enhance_developer_error");
+            var appCoinsGuid = proj.AddRemotePackageReferenceAtVersionUpToNextMajor("https://github.com/Catappult/appcoins-sdk-ios.git", "2.0.0");
 
             var mainTargetGuid = proj.GetUnityMainTargetGuid();
             var frameworkGuid = proj.GetUnityFrameworkTargetGuid();
