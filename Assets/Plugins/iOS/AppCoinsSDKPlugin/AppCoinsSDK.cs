@@ -139,6 +139,15 @@ public class AppCoinsSDK
                     if (_instance == null)
                     {
                         _instance = new AppCoinsSDK();
+
+                        // Check for cold-start deep link (only if iOS)
+                        if (!string.IsNullOrEmpty(Application.absoluteURL))
+                        {
+                            #if UNITY_IOS && !UNITY_EDITOR
+                            _handleDeepLink(Application.absoluteURL, HandleDeepLinkResponse);
+                            #endif
+                        }
+
                         Application.deepLinkActivated += HandleDeepLinkActivated;
                     }
                 }
