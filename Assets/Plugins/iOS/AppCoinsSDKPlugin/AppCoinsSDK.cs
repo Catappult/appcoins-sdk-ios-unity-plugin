@@ -91,9 +91,12 @@ public class AppCoinsSDK
     public const string PURCHASE_STATE_USER_CANCELLED = "user_cancelled";
     public const string PURCHASE_STATE_FAILED = "failed";
 
-
     private static AppCoinsSDK _instance;
+    private static readonly object _lock = new object();
+
     private delegate void JsonCallback(string result);
+
+    private static bool _isObservingPurchases = false;
 
     [DllImport("__Internal")]
     private static extern void _handleDeepLink(string url, JsonCallback callback);
@@ -122,14 +125,31 @@ public class AppCoinsSDK
     [DllImport("__Internal")]
     private static extern IntPtr _getTestingWalletAddress();
 
+    [DllImport("__Internal")]
+    private static extern void _startPurchaseUpdates();
+
     public static AppCoinsSDK Instance
     {
         get
         {
-            _instance ??= new AppCoinsSDK();
-            Application.deepLinkActivated += HandleDeepLinkActivated;
+            if (_instance == null)
+            {
+                lock (_lock) // Thread-safe singleton
+                {
+                    if (_instance == null)
+                    {
+                        _instance = new AppCoinsSDK();
+                        Application.deepLinkActivated += HandleDeepLinkActivated;
+                    }
+                }
+            }
             return _instance;
         }
+    }
+
+    ~AppCoinsSDK()
+    {
+        Application.deepLinkActivated -= HandleDeepLinkActivated;
     }
 
     private static void HandleDeepLinkActivated(string url)
@@ -327,6 +347,17 @@ public class AppCoinsSDK
     {
         IntPtr ptr = _getTestingWalletAddress();
         return ptr == IntPtr.Zero ? null : Marshal.PtrToStringAnsi(ptr);
+    }
+    #endregion
+
+    #region Start Observing Indirect Purchases
+    public static void StartObservingPurchases()
+    {
+        if (_isObservingPurchases)
+            return; // Prevent multiple registrations
+        
+        _isObservingPurchases = true;
+        _startPurchaseUpdates();
     }
     #endregion
 
