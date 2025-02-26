@@ -350,7 +350,7 @@ public class AppCoinsSDK
     }
     #endregion
 
-    #region Start Observing Non-Direct Purchases
+    #region Start Observing Indirect Purchases
     public static void StartObservingPurchases()
     {
         if (_isObservingPurchases)

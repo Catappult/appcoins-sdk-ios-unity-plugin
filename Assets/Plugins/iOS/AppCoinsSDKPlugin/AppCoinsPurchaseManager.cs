@@ -8,7 +8,7 @@ public class AppCoinsPurchaseManager : MonoBehaviour
 {
     private static AppCoinsPurchaseManager _instance;
 
-    // Subscribe to get notified of non-direct IAP
+    // Subscribe to get notified of indirect IAP
     public static event Action<PurchaseResponse> OnPurchaseUpdated;
 
     public static AppCoinsPurchaseManager Instance
