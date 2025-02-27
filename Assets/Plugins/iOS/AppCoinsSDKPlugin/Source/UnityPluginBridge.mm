@@ -52,33 +52,24 @@ extern "C" {
         }
         
         NSArray *skuNSArray = [skuArray copy];
-    
-        [UnityPlugin.shared getProductsWithSkus:skuNSArray completion:^(NSArray * _Nullable success, NSDictionary * _Nullable sdkError) {
-            NSString *jsonSuccess = nil;
-            NSString *jsonError = nil;
+        [UnityPlugin.shared getProductsWithSkus:skuNSArray completion:^(NSArray * _Nullable success, NSString * _Nullable sdkError) {
+            NSError *error = NULL;
+            NSString *jsonSuccess = NULL;
+            NSString *stringError = NULL;
 
             if (success) {
-                NSError *error = nil;
                 NSData *jsonData = [NSJSONSerialization dataWithJSONObject:success options:0 error:&error];
-                if (!jsonData) {
-                    NSLog(@"Failed to serialize success JSON: %@", error);
-                } else {
+                if (jsonData) {
                     jsonSuccess = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+                } else {
+                    NSLog(@"JSON Serialization Error: %@", error.localizedDescription);
                 }
             }
 
-            if (sdkError) {
-                NSError *error = nil;
-                NSData *jsonData = [NSJSONSerialization dataWithJSONObject:sdkError options:0 error:&error];
-                if (!jsonData) {
-                    NSLog(@"Failed to serialize error JSON: %@", error);
-                } else {
-                    jsonError = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
-                }
-            }
+            if (sdkError) { stringError = [sdkError copy]; }
 
             if (callback) {
-                callback(jsonSuccess ? [jsonSuccess UTF8String] : NULL, jsonError ? [jsonError UTF8String] : NULL);
+                callback(jsonSuccess ? [jsonSuccess UTF8String] : NULL, stringError ? [stringError UTF8String] : NULL);
             }
         }];
     }
@@ -87,63 +78,47 @@ extern "C" {
         NSString *skuString = [NSString stringWithUTF8String:sku];
         NSString *payloadString = [NSString stringWithUTF8String:payload];
         
-        [UnityPlugin.shared purchaseWithSku:skuString payload:payloadString completion:^(NSDictionary * _Nullable success, NSDictionary * _Nullable sdkError) {
-            NSString *jsonSuccess = nil;
-            NSString *jsonError = nil;
+        [UnityPlugin.shared purchaseWithSku:skuString payload:payloadString completion:^(NSDictionary * _Nullable success, NSString * _Nullable sdkError) {
+            NSError *error = NULL;
+            NSString *jsonSuccess = NULL;
+            NSString *stringError = NULL;
 
             if (success) {
-                NSError *error = nil;
                 NSData *jsonData = [NSJSONSerialization dataWithJSONObject:success options:0 error:&error];
-                if (!jsonData) {
-                    NSLog(@"Failed to serialize success JSON: %@", error);
-                } else {
+                if (jsonData) {
                     jsonSuccess = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+                } else {
+                    NSLog(@"JSON Serialization Error: %@", error.localizedDescription);
                 }
             }
 
-            if (sdkError) {
-                NSError *error = nil;
-                NSData *jsonData = [NSJSONSerialization dataWithJSONObject:sdkError options:0 error:&error];
-                if (!jsonData) {
-                    NSLog(@"Failed to serialize error JSON: %@", error);
-                } else {
-                    jsonError = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
-                }
-            }
+            if (sdkError) { stringError = [sdkError copy]; }
 
             if (callback) {
-                callback(jsonSuccess ? [jsonSuccess UTF8String] : NULL, jsonError ? [jsonError UTF8String] : NULL);
+                callback(jsonSuccess ? [jsonSuccess UTF8String] : NULL, stringError ? [stringError UTF8String] : NULL);
             }
         }];
     }
 
     void _getAllPurchases(ResultHandlingJsonCallback callback) {
-        [UnityPlugin.shared getAllPurchasesWithCompletion:^(NSArray * _Nullable success, NSDictionary * _Nullable sdkError) {
-            NSString *jsonSuccess = nil;
-            NSString *jsonError = nil;
+        [UnityPlugin.shared getAllPurchasesWithCompletion:^(NSArray * _Nullable success, NSString * _Nullable sdkError) {
+            NSError *error = NULL;
+            NSString *jsonSuccess = NULL;
+            NSString *stringError = NULL;
 
             if (success) {
-                NSError *error = nil;
                 NSData *jsonData = [NSJSONSerialization dataWithJSONObject:success options:0 error:&error];
-                if (!jsonData) {
-                    NSLog(@"Failed to serialize success JSON: %@", error);
-                } else {
+                if (jsonData) {
                     jsonSuccess = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+                } else {
+                    NSLog(@"JSON Serialization Error: %@", error.localizedDescription);
                 }
             }
 
-            if (sdkError) {
-                NSError *error = nil;
-                NSData *jsonData = [NSJSONSerialization dataWithJSONObject:sdkError options:0 error:&error];
-                if (!jsonData) {
-                    NSLog(@"Failed to serialize error JSON: %@", error);
-                } else {
-                    jsonError = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
-                }
-            }
+            if (sdkError) { stringError = [sdkError copy]; }
 
             if (callback) {
-                callback(jsonSuccess ? [jsonSuccess UTF8String] : NULL, jsonError ? [jsonError UTF8String] : NULL);
+                callback(jsonSuccess ? [jsonSuccess UTF8String] : NULL, stringError ? [stringError UTF8String] : NULL);
             }
         }];
     }
@@ -151,63 +126,47 @@ extern "C" {
     void _getLatestPurchase(const char *sku, ResultHandlingJsonCallback callback) {
         NSString *skuString = [NSString stringWithUTF8String:sku];
 
-        [UnityPlugin.shared getLatestPurchaseWithSku:skuString completion:^(NSDictionary * _Nullable success, NSDictionary * _Nullable sdkError) {
-            NSString *jsonSuccess = nil;
-            NSString *jsonError = nil;
+        [UnityPlugin.shared getLatestPurchaseWithSku:skuString completion:^(NSDictionary * _Nullable success, NSString * _Nullable sdkError) {
+            NSError *error = NULL;
+            NSString *jsonSuccess = NULL;
+            NSString *stringError = NULL;
 
             if (success) {
-                NSError *error = nil;
                 NSData *jsonData = [NSJSONSerialization dataWithJSONObject:success options:0 error:&error];
-                if (!jsonData) {
-                    NSLog(@"Failed to serialize success JSON: %@", error);
-                } else {
+                if (jsonData) {
                     jsonSuccess = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+                } else {
+                    NSLog(@"JSON Serialization Error: %@", error.localizedDescription);
                 }
             }
 
-            if (sdkError) {
-                NSError *error = nil;
-                NSData *jsonData = [NSJSONSerialization dataWithJSONObject:sdkError options:0 error:&error];
-                if (!jsonData) {
-                    NSLog(@"Failed to serialize error JSON: %@", error);
-                } else {
-                    jsonError = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
-                }
-            }
+            if (sdkError) { stringError = [sdkError copy]; }
 
             if (callback) {
-                callback(jsonSuccess ? [jsonSuccess UTF8String] : NULL, jsonError ? [jsonError UTF8String] : NULL);
+                callback(jsonSuccess ? [jsonSuccess UTF8String] : NULL, stringError ? [stringError UTF8String] : NULL);
             }
         }];
     }
 
     void _getUnfinishedPurchases(ResultHandlingJsonCallback callback) {
-        [UnityPlugin.shared getUnfinishedPurchasesWithCompletion:^(NSArray * _Nullable success, NSDictionary * _Nullable sdkError) {
-            NSString *jsonSuccess = nil;
-            NSString *jsonError = nil;
+        [UnityPlugin.shared getUnfinishedPurchasesWithCompletion:^(NSArray * _Nullable success, NSString * _Nullable sdkError) {
+            NSError *error = NULL;
+            NSString *jsonSuccess = NULL;
+            NSString *stringError = NULL;
 
             if (success) {
-                NSError *error = nil;
                 NSData *jsonData = [NSJSONSerialization dataWithJSONObject:success options:0 error:&error];
-                if (!jsonData) {
-                    NSLog(@"Failed to serialize success JSON: %@", error);
-                } else {
+                if (jsonData) {
                     jsonSuccess = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+                } else {
+                    NSLog(@"JSON Serialization Error: %@", error.localizedDescription);
                 }
             }
 
-            if (sdkError) {
-                NSError *error = nil;
-                NSData *jsonData = [NSJSONSerialization dataWithJSONObject:sdkError options:0 error:&error];
-                if (!jsonData) {
-                    NSLog(@"Failed to serialize error JSON: %@", error);
-                } else {
-                    jsonError = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
-                }
-            }
+            if (sdkError) { stringError = [sdkError copy]; }
 
             if (callback) {
-                callback(jsonSuccess ? [jsonSuccess UTF8String] : NULL, jsonError ? [jsonError UTF8String] : NULL);
+                callback(jsonSuccess ? [jsonSuccess UTF8String] : NULL, stringError ? [stringError UTF8String] : NULL);
             }
         }];
     }
@@ -215,32 +174,24 @@ extern "C" {
     void _consumePurchase(const char *sku, ResultHandlingJsonCallback callback) {
         NSString *skuString = [NSString stringWithUTF8String:sku];
         
-        [UnityPlugin.shared consumePurchaseWithSku:skuString completion:^(NSDictionary * _Nullable success, NSDictionary * _Nullable sdkError) {
-            NSString *jsonSuccess = nil;
-            NSString *jsonError = nil;
+        [UnityPlugin.shared consumePurchaseWithSku:skuString completion:^(NSDictionary * _Nullable success, NSString * _Nullable sdkError) {
+            NSError *error = NULL;
+            NSString *jsonSuccess = NULL;
+            NSString *stringError = NULL;
 
             if (success) {
-                NSError *error = nil;
                 NSData *jsonData = [NSJSONSerialization dataWithJSONObject:success options:0 error:&error];
-                if (!jsonData) {
-                    NSLog(@"Failed to serialize success JSON: %@", error);
-                } else {
+                if (jsonData) {
                     jsonSuccess = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+                } else {
+                    NSLog(@"JSON Serialization Error: %@", error.localizedDescription);
                 }
             }
 
-            if (sdkError) {
-                NSError *error = nil;
-                NSData *jsonData = [NSJSONSerialization dataWithJSONObject:sdkError options:0 error:&error];
-                if (!jsonData) {
-                    NSLog(@"Failed to serialize error JSON: %@", error);
-                } else {
-                    jsonError = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
-                }
-            }
+            if (sdkError) { stringError = [sdkError copy]; }
 
             if (callback) {
-                callback(jsonSuccess ? [jsonSuccess UTF8String] : NULL, jsonError ? [jsonError UTF8String] : NULL);
+                callback(jsonSuccess ? [jsonSuccess UTF8String] : NULL, stringError ? [stringError UTF8String] : NULL);
             }
         }];
     }

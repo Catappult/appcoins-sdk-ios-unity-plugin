@@ -80,60 +80,6 @@ public class ConsumePurchaseResponse
     public string Error;
 }
 
-[Serializable]
-public class AppCoinsPluginSDKError 
-{
-    public string errorType;
-    public DebugInfo debugInfo;
-
-    public override string ToString()
-    {
-        return $"ErrorType: {errorType},\nDebugInfo: {debugInfo.ToString()}";
-    }
-
-    [Serializable]
-    public class DebugInfo
-    {
-        public string message;
-        public string description;
-        public DebugRequestInfo request;
-
-        public override string ToString()
-        {
-            return $"\nMessage: {message},\nDescription: {description},\nRequest: {request.ToString()}\n";
-        }
-    }
-
-    [Serializable]
-    public class DebugRequestInfo
-    {
-        public string url;
-        public string body;
-        public string method;
-        public string responseData;
-        public string statusCode;
-
-        public override string ToString()
-        {
-            return $"\nURL: {url},\nBody: {body},\nMethod: {method},\nResponseData: {responseData},\nStatusCode: {statusCode}";
-        }
-    }
-
-    public static AppCoinsPluginSDKError CreateAppCoinsPluginSDKError(string errorType, string message, string description)
-    {
-        return new AppCoinsPluginSDKError
-        {
-            errorType = errorType,
-            debugInfo = new DebugInfo
-            {
-                message = message,
-                description = description,
-                request = new DebugRequestInfo()
-            }
-        };
-    }
-}
-
 public class AppCoinsSDK
 {
     public const string PURCHASE_PENDING = "PENDING";
@@ -148,7 +94,7 @@ public class AppCoinsSDK
 
     private static AppCoinsSDK _instance;
     private delegate void JsonCallback(string result);
-    private delegate void ResultHandlingJsonCallback(string jsonSuccess, string jsonError);
+    private delegate void ResultHandlingJsonCallback(string jsonSuccess, string stringError);
 
     [DllImport("__Internal")]
     private static extern void _handleDeepLink(string url, JsonCallback callback);
@@ -239,26 +185,18 @@ public class AppCoinsSDK
 
     #if UNITY_IOS && !UNITY_EDITOR
     [AOT.MonoPInvokeCallback(typeof(ResultHandlingJsonCallback))]
-    private static void OnGetProductsCompleted(string jsonSuccess, string jsonError)
+    private static void OnGetProductsCompleted(string jsonSuccess, string appcoinsSdkError)
     {
         try
         {
-            if (!string.IsNullOrEmpty(jsonError))
+            if (!string.IsNullOrEmpty(appcoinsSdkError))
             {
-                var sdkError = JsonUtility.FromJson<AppCoinsPluginSDKError>(jsonError);
-                if (sdkError != null)
-                {
-                    throw new Exception($"{sdkError}");
-                }
-                else
-                {
-                    throw new Exception("Failure in error JSON deserialization at AppCoinsSDK.cs:GetProducts");
-                }
+                throw new Exception($"AppcoinsSDKError: {appcoinsSdkError}");
             }
             else if (!string.IsNullOrEmpty(jsonSuccess))
             {
                 var response = JsonUtility.FromJson<GetProductsResponse>("{\"Products\":" + jsonSuccess + "}");
-                if (response != null)
+                if (response != null && response.Products != null)
                 {
                     Instance._tcsGetProducts.SetResult(response.Products);
                 }
@@ -295,21 +233,13 @@ public class AppCoinsSDK
 
     #if UNITY_IOS && !UNITY_EDITOR
     [AOT.MonoPInvokeCallback(typeof(ResultHandlingJsonCallback))]
-    private static void OnPurchaseCompleted(string jsonSuccess, string jsonError)
+    private static void OnPurchaseCompleted(string jsonSuccess, string appcoinsSdkError)
     {
         try
         {
-            if (!string.IsNullOrEmpty(jsonError))
+            if (!string.IsNullOrEmpty(appcoinsSdkError))
             {
-                var sdkError = JsonUtility.FromJson<AppCoinsPluginSDKError>(jsonError);
-                if (sdkError != null)
-                {
-                    throw new Exception($"{sdkError}");
-                }
-                else
-                {
-                    throw new Exception("Failure in error JSON deserialization at AppCoinsSDK.cs:Purchase");
-                }
+                throw new Exception($"AppcoinsSDKError: {appcoinsSdkError}");
             }
             else if (!string.IsNullOrEmpty(jsonSuccess))
             {
@@ -351,21 +281,13 @@ public class AppCoinsSDK
 
     #if UNITY_IOS && !UNITY_EDITOR
     [AOT.MonoPInvokeCallback(typeof(ResultHandlingJsonCallback))]
-    private static void OnGetAllPurchasesCompleted(string jsonSuccess, string jsonError)
+    private static void OnGetAllPurchasesCompleted(string jsonSuccess, string appcoinsSdkError)
     {
         try
         {
-            if (!string.IsNullOrEmpty(jsonError))
+            if (!string.IsNullOrEmpty(appcoinsSdkError))
             {
-                var sdkError = JsonUtility.FromJson<AppCoinsPluginSDKError>(jsonError);
-                if (sdkError != null)
-                {
-                    throw new Exception($"{sdkError}");
-                }
-                else
-                {
-                    throw new Exception("Failure in error JSON deserialization at AppCoinsSDK.cs:GetAllPurchases");
-                }
+                throw new Exception($"AppcoinsSDKError: {appcoinsSdkError}");
             }
             else if (!string.IsNullOrEmpty(jsonSuccess))
             {
@@ -407,21 +329,13 @@ public class AppCoinsSDK
 
     #if UNITY_IOS && !UNITY_EDITOR
     [AOT.MonoPInvokeCallback(typeof(ResultHandlingJsonCallback))]
-    private static void OnGetLatestPurchaseCompleted(string jsonSuccess, string jsonError)
+    private static void OnGetLatestPurchaseCompleted(string jsonSuccess, string appcoinsSdkError)
     {
         try
         {
-            if (!string.IsNullOrEmpty(jsonError))
+            if (!string.IsNullOrEmpty(appcoinsSdkError))
             {
-                var sdkError = JsonUtility.FromJson<AppCoinsPluginSDKError>(jsonError);
-                if (sdkError != null)
-                {
-                    throw new Exception($"{sdkError}");
-                }
-                else
-                {
-                    throw new Exception("Failure in error JSON deserialization at AppCoinsSDK.cs:GetLatestPurchase");
-                }
+                throw new Exception($"AppcoinsSDKError: {appcoinsSdkError}");
             }
             else if (!string.IsNullOrEmpty(jsonSuccess))
             {
@@ -463,21 +377,13 @@ public class AppCoinsSDK
 
     #if UNITY_IOS && !UNITY_EDITOR
     [AOT.MonoPInvokeCallback(typeof(ResultHandlingJsonCallback))]
-    private static void OnGetUnfinishedPurchasesCompleted(string jsonSuccess, string jsonError)
+    private static void OnGetUnfinishedPurchasesCompleted(string jsonSuccess, string appcoinsSdkError)
     {
         try
         {
-            if (!string.IsNullOrEmpty(jsonError))
+            if (!string.IsNullOrEmpty(appcoinsSdkError))
             {
-                var sdkError = JsonUtility.FromJson<AppCoinsPluginSDKError>(jsonError);
-                if (sdkError != null)
-                {
-                    throw new Exception($"{sdkError}");
-                }
-                else
-                {
-                    throw new Exception("Failure in error JSON deserialization at AppCoinsSDK.cs:GetUnfinishedPurchases");
-                }
+                throw new Exception($"AppcoinsSDKError: {appcoinsSdkError}");
             }
             else if (!string.IsNullOrEmpty(jsonSuccess))
             {
@@ -520,21 +426,13 @@ public class AppCoinsSDK
 
     #if UNITY_IOS && !UNITY_EDITOR
     [AOT.MonoPInvokeCallback(typeof(ResultHandlingJsonCallback))]
-    private static void OnConsumePurchaseCompleted(string jsonSuccess, string jsonError)
+    private static void OnConsumePurchaseCompleted(string jsonSuccess, string appcoinsSdkError)
     {
         try
         {
-            if (!string.IsNullOrEmpty(jsonError))
+            if (!string.IsNullOrEmpty(appcoinsSdkError))
             {
-                var sdkError = JsonUtility.FromJson<AppCoinsPluginSDKError>(jsonError);
-                if (sdkError != null)
-                {
-                    throw new Exception($"{sdkError}");
-                }
-                else
-                {
-                    throw new Exception("Failure in error JSON deserialization at AppCoinsSDK.cs:ConsumePurchase");
-                }
+                throw new Exception($"AppcoinsSDKError: {appcoinsSdkError}");
             }
             else if (!string.IsNullOrEmpty(jsonSuccess))
             {
@@ -562,7 +460,6 @@ public class AppCoinsSDK
     #endregion
 
     #region Get Testing Wallet Address
-    
     public string GetTestingWalletAddress()
     {
         IntPtr ptr = _getTestingWalletAddress();
