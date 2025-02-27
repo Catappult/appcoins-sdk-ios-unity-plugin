@@ -8,6 +8,12 @@ public class AppCoinsPurchaseManager : MonoBehaviour
 {
     private static AppCoinsPurchaseManager _instance;
 
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+    static void InitOnLoad()
+    {
+        _ = Instance; // Ensures the singleton is created at app startup
+    }
+
     // Subscribe to get notified of indirect IAP
     public static event Action<PurchaseResponse> OnPurchaseUpdated;
 
