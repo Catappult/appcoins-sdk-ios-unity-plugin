@@ -30,7 +30,10 @@ public static class SwiftPostProcess
             proj.AddBuildProperty(targetGuid, "LD_RUNPATH_SEARCH_PATHS", "@executable_path/Frameworks $(PROJECT_DIR)/lib/$(CONFIGURATION) $(inherited)");
             proj.AddBuildProperty(targetGuid, "FRAMERWORK_SEARCH_PATHS",
                 "$(inherited) $(PROJECT_DIR) $(PROJECT_DIR)/Frameworks");
-            proj.AddBuildProperty(targetGuid, "ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES", "YES");
+                
+            proj.SetBuildProperty(frameworkGuid, "ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES", "NO");
+            proj.SetBuildProperty(mainTargetGuid, "ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES", "YES");
+
             proj.AddBuildProperty(targetGuid, "DYLIB_INSTALL_NAME_BASE", "@rpath");
             proj.AddBuildProperty(targetGuid, "LD_DYLIB_INSTALL_NAME",
                 "@executable_path/../Frameworks/$(EXECUTABLE_PATH)");
