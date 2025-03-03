@@ -56,7 +56,7 @@ Now that you have the Plugin set-up you can start making use of its functionalit
       var products = await AppCoinsSDK.Instance.GetProducts(new string[] { "coins_100", "gas" });
       ```
 
-   > ⚠️ **Warning:** You will only be able to query your In-App Products once your application is reviewed and approved on Catappult.
+   > ⚠️ **Warning:** You will only be able to query your In-App Products once your application is reviewed and approved on Aptoide Connect.
    
 3. **Purchase In-App Product**  
    To purchase an In-App Product you must call the function `AppCoinsSDK.Instance.Purchase(sku, payload)`. The Plugin will handle all of the purchase logic for you and it will return you on completion the result of the purchase. This result is an object with the following properties:        
@@ -92,7 +92,57 @@ Now that you have the Plugin set-up you can start making use of its functionalit
      }
    }
    ```
-4. **Query Purchases**  
+4. **Handle Indirect Purchases**
+
+   In addition to standard In-App Purchases, the AppCoins SDK supports **Indirect In-App Purchases**. These are purchases that users do not initiate directly through a Buy action within the application. Common use cases include:
+
+   1. Purchasing an item directly from a catalog of In-App Products in the Aptoide Store.
+   2. Buying an item through a web link.
+
+   The `AppCoinsPurchaseManager.OnPurchaseUpdated` Unity Action allows developers to manage these purchases and assign consumables to users. This action continuously streams purchase updates, ensuring real-time transaction synchronization.
+
+   The event returns a `PurchaseResponse` object, which should be handled in the same way as a standard In-App Purchase.
+
+   To properly handle purchase updates, define the subscription within a singleton class, ensuring it remains active for the application’s lifecycle. Use the same HandlePurchase method applied to standard purchases.
+   <br/>
+
+   ```csharp
+   private void Awake()
+   {
+     // Singleton enforcement
+     if (Instance != null && Instance != this)
+     {
+       Destroy(gameObject);  // Destroy duplicate instances
+       return;
+     }
+     
+     Instance = this;
+     DontDestroyOnLoad(gameObject); // Persist across scenes
+     
+     // Subscribe to purchase updates
+     AppCoinsPurchaseManager.OnPurchaseUpdated += HandlePurchase;
+   }
+   
+   // Already defined previously
+   async public void HandlePurchase(PurchaseResponse purchaseResponse)
+   {
+     if (purchaseResponse.State == AppCoinsSDK.PURCHASE_STATE_SUCCESS)
+     {
+       var response = await AppCoinsSDK.Instance.ConsumePurchase(purchaseResponse.PurchaseSku);
+       
+       if (response.Success)
+       {
+         Debug.Log("Purchase consumed successfully");
+       }
+       else
+       {
+         Debug.Log("Error consuming purchase: " + response.Error);
+       }
+     }
+   }
+   ```
+
+5. **Query Purchases**  
    You can query the user’s purchases by using one of the following methods:
 
    1. `AppCoinsSDK.Instance.GetAllPurchases()`
@@ -131,6 +181,23 @@ Follow these steps in Xcode:
    ![Screenshot 2024-05-16 at 09 43 48](https://github.com/Catappult/appcoins-sdk-ios-unity-plugin/assets/78313327/ae735ba2-d155-4ea6-a47e-4bab3eaf97ea)
 
    For more information, please refer to Apple's official documentation: <https://developer.apple.com/documentation/appdistribution/distributing-your-app-on-an-alternative-marketplace#Test-your-app-during-development>
+
+### Testing Both Billing Systems in One Build
+
+To facilitate testing both **Apple Billing** and **Aptoide Billing** within a single build – without the need to generate separate versions of your application – the **AppCoins SDK** includes a deep link mechanism that toggles the SDK’s `isAvailable` method between `true` and `false`. This allows you to seamlessly switch between testing the AppCoins SDK (when available) and Apple Billing (when unavailable).
+
+To enable or disable the AppCoins SDK, open your device’s browser and enter the following URL:
+
+```
+{domain}.iap://wallet.appcoins.io/default?value={value}
+```
+
+Where:
+
+- `domain` – The Bundle ID of your application.
+- `value` 
+  - `true` → Enables the AppCoins SDK for testing.
+  - `false` → Disables the AppCoins SDK, allowing Apple Billing to be tested instead.
 
 ### Sandbox Testing
 
