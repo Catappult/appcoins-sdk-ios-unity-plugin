@@ -152,7 +152,7 @@ public struct PurchaseData {
         Task {
             do {
                 guard let product = try await Product.products(for: [sku]).first else {
-                    return completion(["State": "failed", "Error": "Product not found", "Purchase": ""])
+                    return completion(["State": "failed", "Error": "Product not found", "Purchase": [:]])
                 }
 
                 let result = await product.purchase(payload: payload.isEmpty ? nil : payload)
@@ -167,17 +167,17 @@ public struct PurchaseData {
                             return ["State": "unverified", "Error": verificationError.localizedDescription, "Purchase": PurchaseData(purchase: purchase).dictionaryRepresentation]
                         }
                     case .pending:
-                        return ["State": "pending", "Error": "", "Purchase": ""]
+                        return ["State": "pending", "Error": "", "Purchase": [:]]
                     case .userCancelled:
-                        return ["State": "user_cancelled", "Error": "", "Purchase": ""]
+                        return ["State": "user_cancelled", "Error": "", "Purchase": [:]]
                     case .failed(let error):
-                        return ["State": "failed", "Error": error.localizedDescription, "Purchase": ""]
+                        return ["State": "failed", "Error": error.localizedDescription, "Purchase": [:]]
                     }
                 }()
                 
                 completion(response)
             } catch {
-                completion(["State": "failed", "Error": error.localizedDescription, "Purchase": ""])
+                completion(["State": "failed", "Error": error.localizedDescription, "Purchase": [:]])
             }
         }
     }
