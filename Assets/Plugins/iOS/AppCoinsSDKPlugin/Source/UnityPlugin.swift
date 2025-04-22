@@ -277,7 +277,7 @@ public struct PurchaseIntentData {
                     return completion(["State": "failed", "Error": "Intent not found", "Purchase": [:]])
                 }
 
-                let result = await intent.purchase(payload: payload.isEmpty ? nil : payload)
+                let result = await intent.confirm(payload: payload.isEmpty ? nil : payload)
                 
                 let response: [String: Any] = {
                     switch result {
