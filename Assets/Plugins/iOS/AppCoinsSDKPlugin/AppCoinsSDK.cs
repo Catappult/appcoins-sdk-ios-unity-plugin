@@ -244,21 +244,8 @@ public class AppCoinsSDK
     [AOT.MonoPInvokeCallback(typeof(JsonCallback))]
     private static void OnPurchaseCompleted(string json)
     {
-        try
-        {
-            var response = JsonUtility.FromJson<PurchaseResponse>(json);
-            Instance._tcsPurchase?.TrySetResult(response); // Use TrySetResult to avoid exception if already set
-        }
-        catch (Exception ex)
-        {
-            var fallback = new PurchaseResponse
-            {
-                State = "failed",
-                Error = ex.ToString(),
-                Purchase = new PurchaseData()
-            };
-            Instance._tcsPurchase?.TrySetResult(fallback);
-        }
+        var response = JsonUtility.FromJson<PurchaseResponse>(json);
+        Instance._tcsPurchase.SetResult(response);
     }
 #endif
 
