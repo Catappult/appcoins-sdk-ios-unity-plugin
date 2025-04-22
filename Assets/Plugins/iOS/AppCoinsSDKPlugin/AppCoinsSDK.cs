@@ -80,6 +80,14 @@ public class ConsumePurchaseResponse
     public string Error;
 }
 
+[Serializable]
+public class PurchaseIntentData
+{
+    public string ID;
+    public ProductData Product;
+    public string Timestamp;
+}
+
 public class AppCoinsSDK
 {
     public const string PURCHASE_PENDING = "PENDING";
@@ -124,6 +132,15 @@ public class AppCoinsSDK
 
     [DllImport("__Internal")]
     private static extern IntPtr _getTestingWalletAddress();
+
+    [DllImport("__Internal")]
+    private static extern void _getPurchaseIntent(JsonCallback callback);
+
+    [DllImport("__Internal")]
+    private static extern void _confirmPurchaseIntent(string payload, JsonCallback callback);
+
+    [DllImport("__Internal")]
+    private static extern void _rejectPurchaseIntent();
 
     [DllImport("__Internal")]
     private static extern void _startPurchaseUpdates();
@@ -223,7 +240,7 @@ public class AppCoinsSDK
 
     #endregion
 
-    #region Purchase
+    #region Purchase Product
     private TaskCompletionSource<PurchaseResponse> _tcsPurchase;
     public async Task<PurchaseResponse> Purchase(string sku, string payload = "")
     {
@@ -244,8 +261,21 @@ public class AppCoinsSDK
     [AOT.MonoPInvokeCallback(typeof(JsonCallback))]
     private static void OnPurchaseCompleted(string json)
     {
-        var response = JsonUtility.FromJson<PurchaseResponse>(json);
-        Instance._tcsPurchase.SetResult(response);
+        try
+        {
+            var response = JsonUtility.FromJson<PurchaseResponse>(json);
+            Instance._tcsPurchase?.TrySetResult(response); // Use TrySetResult to avoid exception if already set
+        }
+        catch (Exception ex)
+        {
+            var fallback = new PurchaseResponse
+            {
+                State = "failed",
+                Error = ex.ToString(),
+                Purchase = new PurchaseData()
+            };
+            Instance._tcsPurchase?.TrySetResult(fallback);
+        }
     }
 #endif
 
@@ -356,6 +386,56 @@ public class AppCoinsSDK
     {
         IntPtr ptr = _getTestingWalletAddress();
         return ptr == IntPtr.Zero ? null : Marshal.PtrToStringAnsi(ptr);
+    }
+    #endregion
+
+    #region Get Purchase Intent
+    private TaskCompletionSource<PurchaseIntentData> _tcsGetPurchaseIntent;
+    public async Task<PurchaseIntentData> GetPurchaseIntent()
+    {
+#if UNITY_IOS && !UNITY_EDITOR
+        this._tcsGetPurchaseIntent = new TaskCompletionSource<PurchaseIntentData>();
+        _getPurchaseIntent(OnGetPurchaseIntentCompleted);
+        return await this._tcsGetPurchaseIntent.Task;        
+#else
+        return await Task.FromResult(new PurchaseIntentData());
+#endif
+    }
+
+#if UNITY_IOS && !UNITY_EDITOR
+    [AOT.MonoPInvokeCallback(typeof(JsonCallback))]
+    private static void OnGetPurchaseIntentCompleted(string json)
+    {
+        var response = JsonUtility.FromJson<PurchaseIntentData>(json);
+        Instance._tcsGetPurchaseIntent.SetResult(response);
+    }
+#endif
+
+    #endregion
+
+    #region Confirm Purchase Intent
+    private TaskCompletionSource<PurchaseResponse> _tcsConfirmPurchaseIntent;
+    public async Task<PurchaseResponse> ConfirmPurchaseIntent(string payload = "")
+    {
+#if UNITY_IOS && !UNITY_EDITOR
+        this._tcsConfirmPurchaseIntent = new TaskCompletionSource<PurchaseResponse>();
+        _confirmPurchaseIntent(payload, OnPurchaseCompleted);
+        return await this._tcsConfirmPurchaseIntent.Task;        
+#else
+        return await Task.FromResult(new PurchaseResponse
+        {
+            State = "error",
+            Error = "AppCoins SDK is not available."
+        });
+#endif
+    }
+
+    #endregion
+
+    #region Reject Purchase Intent
+    public void RejectPurchaseIntent()
+    {
+        _rejectPurchaseIntent();
     }
     #endregion
 

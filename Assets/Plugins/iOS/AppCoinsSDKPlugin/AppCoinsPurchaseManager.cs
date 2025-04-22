@@ -15,7 +15,7 @@ public class AppCoinsPurchaseManager : MonoBehaviour
     }
 
     // Subscribe to get notified of indirect IAP
-    public static event Action<PurchaseResponse> OnPurchaseUpdated;
+    public static event Action<PurchaseIntentData> OnPurchaseUpdated;
 
     public static AppCoinsPurchaseManager Instance
     {
@@ -45,14 +45,14 @@ public class AppCoinsPurchaseManager : MonoBehaviour
     }
 
     // This method name must match "OnPurchaseUpdatedInternal" from Swift
-    public void OnPurchaseUpdatedInternal(string purchaseJson)
+    public void OnPurchaseUpdatedInternal(string purchaseIntentJson)
     {
-        PurchaseResponse purchaseResponse = JsonUtility.FromJson<PurchaseResponse>(purchaseJson);
-        NotifyPurchase(purchaseResponse);
+        PurchaseIntentData purchaseIntent = JsonUtility.FromJson<PurchaseIntentData>(purchaseIntentJson);
+        NotifyPurchase(purchaseIntent);
     }
 
-    public static void NotifyPurchase(PurchaseResponse purchaseResponse)
+    public static void NotifyPurchase(PurchaseIntentData purchaseIntent)
     {
-        OnPurchaseUpdated?.Invoke(purchaseResponse);
+        OnPurchaseUpdated?.Invoke(purchaseIntent);
     }
 }
