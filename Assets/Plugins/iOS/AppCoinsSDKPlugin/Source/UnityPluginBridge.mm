@@ -180,6 +180,50 @@ extern "C" {
         }
     }
 
+    void _getPurchaseIntent(JsonCallback callback) {
+        [UnityPlugin.shared getPurchaseIntentWithCompletion:^(NSDictionary *data) {
+            NSError *error = nil;
+            NSData *jsonData = [NSJSONSerialization dataWithJSONObject:data options:0 error:&error];
+            if (!jsonData) {
+                NSLog(@"Failed to serialize JSON: %@", error);
+                if (callback) {
+                    callback(""); // Call with an empty string or error message
+                }
+                return;
+            }
+
+            NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+            if (callback) {
+                callback([jsonString UTF8String]);
+            }
+        }];
+    }
+
+    void _confirmPurchaseIntent(const char *payload, JsonCallback callback) {
+        NSString *payloadString = [NSString stringWithUTF8String:payload];
+        
+        [UnityPlugin.shared confirmPurchaseIntentWithPayload:payloadString completion:^(NSDictionary *data) {
+            NSError *error = nil;
+            NSData *jsonData = [NSJSONSerialization dataWithJSONObject:data options:0 error:&error];
+            if (!jsonData) {
+                NSLog(@"Failed to serialize JSON: %@", error);
+                if (callback) {
+                    callback(""); // Call with an empty string or error message
+                }
+                return;
+            }
+            
+            NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+            if (callback) {
+                callback([jsonString UTF8String]);
+            }
+        }];
+    }
+
+    void _rejectPurchaseIntent() {
+        [UnityPlugin.shared rejectPurchaseIntent];
+    }
+
     void _startPurchaseUpdates() {
         [UnityPlugin.shared startObservingPurchases];
     }
