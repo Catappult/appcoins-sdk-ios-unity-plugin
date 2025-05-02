@@ -156,37 +156,61 @@ public struct AppCoinsSDKErrorData {
                 self.type = "networkError"
                 self.message = debugInfo.message
                 self.description = debugInfo.description
-                if let request = debugInfo.request { AppCoinsSDKErrorRequestData(request: request) }
+                if let request = debugInfo.request {
+                    self.request = AppCoinsSDKErrorRequestData(request: request)
+                } else {
+                    self.request = nil
+                }
                     
             case .systemError(let debugInfo):
                 self.type = "systemError"
                 self.message = debugInfo.message
                 self.description = debugInfo.description
-                if let request = debugInfo.request { AppCoinsSDKErrorRequestData(request: request) }
+                if let request = debugInfo.request {
+                    self.request = AppCoinsSDKErrorRequestData(request: request)
+                } else {
+                    self.request = nil
+                }
 
             case .notEntitled(let debugInfo):
                 self.type = "notEntitled"
                 self.message = debugInfo.message
                 self.description = debugInfo.description
-                if let request = debugInfo.request { AppCoinsSDKErrorRequestData(request: request) }
+                if let request = debugInfo.request {
+                    self.request = AppCoinsSDKErrorRequestData(request: request)
+                } else {
+                    self.request = nil
+                }
 
             case .productUnavailable(let debugInfo):
                 self.type = "productUnavailable"
                 self.message = debugInfo.message
                 self.description = debugInfo.description
-                if let request = debugInfo.request { AppCoinsSDKErrorRequestData(request: request) }
+                if let request = debugInfo.request {
+                    self.request = AppCoinsSDKErrorRequestData(request: request)
+                } else {
+                    self.request = nil
+                }
 
             case .purchaseNotAllowed(let debugInfo):
                 self.type = "purchaseNotAllowed"
                 self.message = debugInfo.message
                 self.description = debugInfo.description
-                if let request = debugInfo.request { AppCoinsSDKErrorRequestData(request: request) }
+                if let request = debugInfo.request {
+                    self.request = AppCoinsSDKErrorRequestData(request: request)
+                } else {
+                    self.request = nil
+                }
 
             case .unknown(let debugInfo):
                 self.type = "unknown"
                 self.message = debugInfo.message
                 self.description = debugInfo.description
-                if let request = debugInfo.request { AppCoinsSDKErrorRequestData(request: request) }
+                if let request = debugInfo.request {
+                    self.request = AppCoinsSDKErrorRequestData(request: request)
+                } else {
+                    self.request = nil
+                }
         }
     }
 
@@ -212,14 +236,16 @@ public struct AppCoinsSDKErrorData {
         errorDictionary["Message"] = message
         errorDictionary["Description"] = description
         
-        var requestDictionary = [String: Any]()
-        requestDictionary["URL"] = request.url
-        requestDictionary["Method"] = request.method
-        requestDictionary["Body"] = request.body
-        requestDictionary["ResponseData"] = request.responseData
-        requestDictionary["StatusCode"] = request.statusCode
-        
-        errorDictionary["Request"] = requestDictionary
+        if let request = request {
+            var requestDictionary = [String: Any]()
+            requestDictionary["URL"] = request.url
+            requestDictionary["Method"] = request.method
+            requestDictionary["Body"] = request.body
+            requestDictionary["ResponseData"] = request.responseData
+            requestDictionary["StatusCode"] = request.statusCode
+            
+            errorDictionary["Request"] = requestDictionary
+        }
         
         return errorDictionary
     }
@@ -234,17 +260,17 @@ public struct AppCoinsSDKErrorData {
     @objc public func handleDeepLink(url: String, completion: @escaping ([String: Any]) -> Void) {
         Task {
             guard let urlObject = URL(string: url) else {
-                let error: AppCoinsSDKError = .failed(message: "Invalid URL", description: "Invalid URL at UnityPlugin.swift:handleDeepLink"
-                completion(["IsSuccess": false, "Error": AppCoinsSDKErrorData(error: error)])
+                let invalidURLError: AppCoinsSDKError = .systemError(message: "Invalid URL", description: "Invalid URL at UnityPlugin.swift:handleDeepLink")
+                completion(["IsSuccess": false, "Error": AppCoinsSDKErrorData(error: invalidURLError).dictionaryRepresentation])
                 return
             }
-            completion(["IsSuccess": true, "Value": AppcSDK.handle(redirectURL: urlObject)])
+            completion(["IsSuccess": AppcSDK.handle(redirectURL: urlObject)])
         }
     }
 
     @objc public func isAvailable(completion: @escaping ([String: Any]) -> Void) {
         Task {
-            completion(["IsSuccess": true, "Value": await AppcSDK.isAvailable()])
+            completion(["IsSuccess": await AppcSDK.isAvailable()])
         }
     }
 
@@ -256,11 +282,11 @@ public struct AppCoinsSDKErrorData {
             } catch {
                 guard let error = error as? AppCoinsSDKError else {
                     let unknownError: AppCoinsSDKError = .unknown(message: "Unknown Error", description: "Unknown Error at UnityPlugin.swift:getProducts")
-                    completion(["IsSuccess": false, "Error": AppCoinsSDKErrorData(error: error)])
+                    completion(["IsSuccess": false, "Error": AppCoinsSDKErrorData(error: unknownError).dictionaryRepresentation])
                     return
                 }
                 
-                completion(["IsSuccess": false, "Error": AppCoinsSDKErrorData(error: error)])
+                completion(["IsSuccess": false, "Error": AppCoinsSDKErrorData(error: error).dictionaryRepresentation])
             }
         }
     }
@@ -269,8 +295,9 @@ public struct AppCoinsSDKErrorData {
         Task {
             do {
                 guard let product = try await Product.products(for: [sku]).first else {
-                    let error: AppCoinsSDKError = .failed(message: "Product Not Found", description: "Product not found to perform purchase at UnityPlugin.swift:purchase")
-                    completion(["Status": "failed", "Error": AppCoinsSDKErrorData(error: error)])
+                    let error: AppCoinsSDKError = .systemError(message: "Product Not Found", description: "Product not found to perform purchase at UnityPlugin.swift:purchase")
+                    completion(["State": "failed", "Error": AppCoinsSDKErrorData(error: error).dictionaryRepresentation])
+                    return
                 }
 
                 let result = await product.purchase(payload: payload.isEmpty ? nil : payload)
@@ -281,7 +308,7 @@ public struct AppCoinsSDKErrorData {
                         switch verificationResult {
                         case .verified(let purchase):
                             return [
-                                "Status": "success",
+                                "State": "success",
                                 "Value": [
                                     "VerificationResult": "verified",
                                     "Purchase": PurchaseData(purchase: purchase).dictionaryRepresentation
@@ -289,20 +316,20 @@ public struct AppCoinsSDKErrorData {
                             ]
                         case .unverified(let purchase, let verificationError):
                             return [
-                                "Status": "success",
+                                "State": "success",
                                 "Value": [
                                     "VerificationResult": "unverified",
-                                    "Purchase": PurchaseData(purchase: purchase).dictionaryRepresentation
-                                    "VerificationError": verificationError.localizedDescription
+                                    "Purchase": PurchaseData(purchase: purchase).dictionaryRepresentation,
+                                    "VerificationError": AppCoinsSDKErrorData(error: verificationError).dictionaryRepresentation
                                 ]
                             ]
                         }
                     case .pending:
-                        return ["Status": "pending"]
+                        return ["State": "pending"]
                     case .userCancelled:
-                        return ["Status": "user_cancelled"]
+                        return ["State": "user_cancelled"]
                     case .failed(let error):
-                        ["Status": "failed", "Error": AppCoinsSDKErrorData(error: error)]
+                        return ["State": "failed", "Error": AppCoinsSDKErrorData(error: error).dictionaryRepresentation]
                     }
                 }()
                 
@@ -310,16 +337,16 @@ public struct AppCoinsSDKErrorData {
             } catch {
                 guard let error = error as? AppCoinsSDKError else {
                     let unknownError: AppCoinsSDKError = .unknown(message: "Unknown Error", description: "Unknown Error at UnityPlugin.swift:purchase")
-                    completion(["Status": "failed", "Error": AppCoinsSDKErrorData(error: error)])
+                    completion(["State": "failed", "Error": AppCoinsSDKErrorData(error: unknownError).dictionaryRepresentation])
                     return
                 }
                 
-                completion(["Status": "failed", "Error": AppCoinsSDKErrorData(error: error)])
+                completion(["State": "failed", "Error": AppCoinsSDKErrorData(error: error).dictionaryRepresentation])
             }
         }
     }
     
-    @objc public func getAllPurchases(completion: @escaping ([[String: Any]]) -> Void) {
+    @objc public func getAllPurchases(completion: @escaping ([String: Any]) -> Void) {
         Task {
             do {
                 let purchases = try await Purchase.all()
@@ -327,11 +354,11 @@ public struct AppCoinsSDKErrorData {
             } catch {
                 guard let error = error as? AppCoinsSDKError else {
                     let unknownError: AppCoinsSDKError = .unknown(message: "Unknown Error", description: "Unknown Error at UnityPlugin.swift:getAllPurchases")
-                    completion(["IsSuccess": false, "Error": AppCoinsSDKErrorData(error: error)])
+                    completion(["IsSuccess": false, "Error": AppCoinsSDKErrorData(error: unknownError).dictionaryRepresentation])
                     return
                 }
                 
-                completion(["IsSuccess": false, "Error": AppCoinsSDKErrorData(error: error)])
+                completion(["IsSuccess": false, "Error": AppCoinsSDKErrorData(error: error).dictionaryRepresentation])
             }
         }
     }
@@ -339,21 +366,24 @@ public struct AppCoinsSDKErrorData {
     @objc public func getLatestPurchase(sku: String, completion: @escaping ([String: Any]) -> Void) {
         Task {
             do {
-                let purchase = try await Purchase.latest(sku: sku)
-                completion( ["IsSuccess": true, "Value": PurchaseData(purchase: purchase).dictionaryRepresentation] )
+                if let purchase = try await Purchase.latest(sku: sku) {
+                    completion( ["IsSuccess": true, "Value": PurchaseData(purchase: purchase).dictionaryRepresentation] )
+                } else {
+                    completion( ["IsSuccess": true] )
+                }
             } catch {
                 guard let error = error as? AppCoinsSDKError else {
                     let unknownError: AppCoinsSDKError = .unknown(message: "Unknown Error", description: "Unknown Error at UnityPlugin.swift:getLatestPurchase")
-                    completion(["IsSuccess": false, "Error": AppCoinsSDKErrorData(error: error)])
+                    completion(["IsSuccess": false, "Error": AppCoinsSDKErrorData(error: unknownError).dictionaryRepresentation])
                     return
                 }
                 
-                completion(["IsSuccess": false, "Error": AppCoinsSDKErrorData(error: error)])
+                completion(["IsSuccess": false, "Error": AppCoinsSDKErrorData(error: error).dictionaryRepresentation])
             }
         }
     }
 
-    @objc public func getUnfinishedPurchases(completion: @escaping ([[String: Any]]) -> Void) {
+    @objc public func getUnfinishedPurchases(completion: @escaping ([String: Any]) -> Void) {
         Task {
             do {
                 let purchases = try await Purchase.unfinished()
@@ -361,11 +391,11 @@ public struct AppCoinsSDKErrorData {
             } catch {
                 guard let error = error as? AppCoinsSDKError else {
                     let unknownError: AppCoinsSDKError = .unknown(message: "Unknown Error", description: "Unknown Error at UnityPlugin.swift:getUnfinishedPurchases")
-                    completion(["IsSuccess": false, "Error": AppCoinsSDKErrorData(error: error)])
+                    completion(["IsSuccess": false, "Error": AppCoinsSDKErrorData(error: unknownError).dictionaryRepresentation])
                     return
                 }
                 
-                completion(["IsSuccess": false, "Error": AppCoinsSDKErrorData(error: error)])
+                completion(["IsSuccess": false, "Error": AppCoinsSDKErrorData(error: error).dictionaryRepresentation])
             }
         }
     }
@@ -374,21 +404,21 @@ public struct AppCoinsSDKErrorData {
         Task {
             do {
                 guard let purchase = try await Purchase.all().first(where: { $0.sku == sku && ($0.state == "ACKNOWLEDGED" || $0.state == "PENDING") }) else {
-                    let purchaseError: AppCoinsSDKError = .failed(message: "Purchase Not Found", description: "Purchase not found when attempting to consume at UnityPlugin.swift:consumePurchase")
-                    completion(["IsSuccess": false, "Error": AppCoinsSDKErrorData(error: purchaseError)])
+                    let purchaseError: AppCoinsSDKError = .systemError(message: "Purchase Not Found", description: "Purchase not found when attempting to consume at UnityPlugin.swift:consumePurchase")
+                    completion(["IsSuccess": false, "Error": AppCoinsSDKErrorData(error: purchaseError).dictionaryRepresentation])
                     return
                 }
                 
                 try await purchase.finish()
-                completion(["IsSuccess": true, "Value": true])
+                completion(["IsSuccess": true])
             } catch {
                 guard let error = error as? AppCoinsSDKError else {
                     let unknownError: AppCoinsSDKError = .unknown(message: "Unknown Error", description: "Unknown Error at UnityPlugin.swift:consumePurchase")
-                    completion(["IsSuccess": false, "Error": AppCoinsSDKErrorData(error: error)])
+                    completion(["IsSuccess": false, "Error": AppCoinsSDKErrorData(error: unknownError).dictionaryRepresentation])
                     return
                 }
                 
-                completion(["IsSuccess": false, "Error": AppCoinsSDKErrorData(error: error)])
+                completion(["IsSuccess": false, "Error": AppCoinsSDKErrorData(error: error).dictionaryRepresentation])
             }
         }
     }
@@ -398,53 +428,73 @@ public struct AppCoinsSDKErrorData {
     }
     
     @objc public func getPurchaseIntent(completion: @escaping ([String: Any]) -> Void) {
-        guard let intent = Purchase.intent else {
-            completion([:])
-            return
+        if let intent = Purchase.intent {
+            completion( ["IsSuccess": true, "Value": PurchaseIntentData(intent: intent).dictionaryRepresentation] )
+        } else {
+            completion( ["IsSuccess": true] )
         }
-    
-        completion(PurchaseIntentData(intent: intent).dictionaryRepresentation)
     }
     
     @objc public func confirmPurchaseIntent(payload: String, completion: @escaping ([String: Any]) -> Void) {
         Task {
             do {
                 guard let intent = Purchase.intent else {
-                    return completion(["State": "failed", "Error": "Intent not found", "Purchase": [:]])
+                    let error: AppCoinsSDKError = .systemError(message: "Intent Not Found", description: "Intent not found to confirm purchase intent at UnityPlugin.swift:confirmPurchaseIntent")
+                    completion(["State": "failed", "Error": AppCoinsSDKErrorData(error: error).dictionaryRepresentation])
+                    return
                 }
 
                 let result = await intent.confirm(payload: payload.isEmpty ? nil : payload)
+                
+                print("[AppCoinsSDKPlugin] Result: \(result)")
                 
                 let response: [String: Any] = {
                     switch result {
                     case .success(let verificationResult):
                         switch verificationResult {
                         case .verified(let purchase):
-                            return ["State": "success", "Error": "", "Purchase": PurchaseData(purchase: purchase).dictionaryRepresentation]
+                            return [
+                                "State": "success",
+                                "Value": [
+                                    "VerificationResult": "verified",
+                                    "Purchase": PurchaseData(purchase: purchase).dictionaryRepresentation
+                                ]
+                            ]
                         case .unverified(let purchase, let verificationError):
-                            return ["State": "unverified", "Error": verificationError.localizedDescription, "Purchase": PurchaseData(purchase: purchase).dictionaryRepresentation]
+                            return [
+                                "State": "success",
+                                "Value": [
+                                    "VerificationResult": "unverified",
+                                    "Purchase": PurchaseData(purchase: purchase).dictionaryRepresentation,
+                                    "VerificationError": AppCoinsSDKErrorData(error: verificationError).dictionaryRepresentation
+                                ]
+                            ]
                         }
                     case .pending:
-                        return ["State": "pending", "Error": "", "Purchase": [:]]
+                        return ["State": "pending"]
                     case .userCancelled:
-                        return ["State": "user_cancelled", "Error": "", "Purchase": [:]]
+                        print("[AppCoinsSDKPlugin] UserCancelled")
+                        return ["State": "user_cancelled"]
                     case .failed(let error):
-                        return ["State": "failed", "Error": error.localizedDescription, "Purchase": [:]]
+                        return ["State": "failed", "Error": AppCoinsSDKErrorData(error: error).dictionaryRepresentation]
                     }
                 }()
                 
                 completion(response)
             } catch {
-                completion(["State": "failed", "Error": error.localizedDescription, "Purchase": [:]])
+                guard let error = error as? AppCoinsSDKError else {
+                    let unknownError: AppCoinsSDKError = .unknown(message: "Unknown Error", description: "Unknown Error at UnityPlugin.swift:confirmPurchaseIntent")
+                    completion(["State": "failed", "Error": AppCoinsSDKErrorData(error: unknownError).dictionaryRepresentation])
+                    return
+                }
+                
+                completion(["State": "failed", "Error": AppCoinsSDKErrorData(error: error).dictionaryRepresentation])
             }
         }
     }
     
     @objc public func rejectPurchaseIntent() {
-        guard let intent = Purchase.intent else {
-            return
-        }
-        
+        guard let intent = Purchase.intent else { return }
         intent.reject()
     }
     

@@ -51,7 +51,7 @@ extern "C" {
         }
         
         NSArray *skuNSArray = [skuArray copy];
-        [UnityPlugin.shared getProductsWithSkus:skuNSArray completion:^(NSArray *data) {
+        [UnityPlugin.shared getProductsWithSkus:skuNSArray completion:^(NSDictionary *data) {
             NSError *error = nil;
             NSData *jsonData = [NSJSONSerialization dataWithJSONObject:data options:0 error:&error];
             if (!jsonData) {
@@ -92,7 +92,7 @@ extern "C" {
     }
 
     void _getAllPurchases(JsonCallback callback) {
-        [UnityPlugin.shared getAllPurchasesWithCompletion:^(NSArray *data) {
+        [UnityPlugin.shared getAllPurchasesWithCompletion:^(NSDictionary *data) {
             NSError *error = nil;
             NSData *jsonData = [NSJSONSerialization dataWithJSONObject:data options:0 error:&error];
             if (!jsonData) {
@@ -132,7 +132,7 @@ extern "C" {
     }
 
     void _getUnfinishedPurchases(JsonCallback callback) {
-        [UnityPlugin.shared getUnfinishedPurchasesWithCompletion:^(NSArray *data) {
+        [UnityPlugin.shared getUnfinishedPurchasesWithCompletion:^(NSDictionary *data) {
             NSError *error = nil;
             NSData *jsonData = [NSJSONSerialization dataWithJSONObject:data options:0 error:&error];
             if (!jsonData) {
