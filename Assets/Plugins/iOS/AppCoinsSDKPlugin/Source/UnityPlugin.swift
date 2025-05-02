@@ -116,6 +116,33 @@ public struct PurchaseData {
     }
 }
 
+public struct PurchaseIntentData {
+    public let id: String
+    public let product: ProductData
+    public let timestamp: String
+    
+    init(intent: PurchaseIntent) {
+        self.id = intent.id.uuidString
+        self.product = ProductData(product: intent.product)
+        
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSZZZZZ"
+        self.timestamp = formatter.string(from: intent.timestamp)
+    }
+    
+    
+    var dictionaryRepresentation: [String: Any] {
+        var purchaseIntentDictionary = [String: Any]()
+        purchaseIntentDictionary["ID"] = self.id
+        purchaseIntentDictionary["Product"] = self.product.dictionaryRepresentation
+        purchaseIntentDictionary["Timestamp"] = self.timestamp
+        
+        return purchaseIntentDictionary
+    }
+}
+
 
 @objcMembers
 @objc public class UnityPlugin : NSObject {
@@ -181,7 +208,7 @@ public struct PurchaseData {
             }
         }
     }
-
+    
     @objc public func getAllPurchases(completion: @escaping ([[String: Any]]) -> Void) {
         Task {
             do {
@@ -234,6 +261,57 @@ public struct PurchaseData {
         return Sandbox.getTestingWalletAddress()
     }
     
+    @objc public func getPurchaseIntent(completion: @escaping ([String: Any]) -> Void) {
+        guard let intent = Purchase.intent else {
+            completion([:])
+            return
+        }
+    
+        completion(PurchaseIntentData(intent: intent).dictionaryRepresentation)
+    }
+    
+    @objc public func confirmPurchaseIntent(payload: String, completion: @escaping ([String: Any]) -> Void) {
+        Task {
+            do {
+                guard let intent = Purchase.intent else {
+                    return completion(["State": "failed", "Error": "Intent not found", "Purchase": [:]])
+                }
+
+                let result = await intent.confirm(payload: payload.isEmpty ? nil : payload)
+                
+                let response: [String: Any] = {
+                    switch result {
+                    case .success(let verificationResult):
+                        switch verificationResult {
+                        case .verified(let purchase):
+                            return ["State": "success", "Error": "", "Purchase": PurchaseData(purchase: purchase).dictionaryRepresentation]
+                        case .unverified(let purchase, let verificationError):
+                            return ["State": "unverified", "Error": verificationError.localizedDescription, "Purchase": PurchaseData(purchase: purchase).dictionaryRepresentation]
+                        }
+                    case .pending:
+                        return ["State": "pending", "Error": "", "Purchase": [:]]
+                    case .userCancelled:
+                        return ["State": "user_cancelled", "Error": "", "Purchase": [:]]
+                    case .failed(let error):
+                        return ["State": "failed", "Error": error.localizedDescription, "Purchase": [:]]
+                    }
+                }()
+                
+                completion(response)
+            } catch {
+                completion(["State": "failed", "Error": error.localizedDescription, "Purchase": [:]])
+            }
+        }
+    }
+    
+    @objc public func rejectPurchaseIntent() {
+        guard let intent = Purchase.intent else {
+            return
+        }
+        
+        intent.reject()
+    }
+    
     // The Task that listens for Purchase.updates
     private var task: Task<Void, Never>?
     // Flag to track if we're already observing
@@ -246,28 +324,13 @@ public struct PurchaseData {
 
         task = Task(priority: .background) {
             // Because Purchase.updates yields VerificationResult<Purchase> in your snippet
-            for await verificationResult in Purchase.updates {
+            for await intent in Purchase.updates {
                 
-                // 1) Build a dictionary describing the verification result
-                let response: [String: Any] = {
-                    switch verificationResult {
-                    case .verified(let purchase):
-                        return [
-                            "State": "success",
-                            "Error": "",
-                            "Purchase": PurchaseData(purchase: purchase).dictionaryRepresentation
-                        ]
-                    case .unverified(let purchase, let verificationError):
-                        return [
-                            "State": "unverified",
-                            "Error": verificationError.localizedDescription,
-                            "Purchase": PurchaseData(purchase: purchase).dictionaryRepresentation
-                        ]
-                    }
-                }()
+                // 1) Build a dictionary describing the intent
+                let intentData: [String: Any] = PurchaseIntentData(intent: intent).dictionaryRepresentation
                 
                 // 2) Serialize that dictionary to JSON
-                guard let cString = dictionaryToCString(response) else {
+                guard let cString = dictionaryToCString(intentData) else {
                     continue // if serialization fails, skip
                 }
 
