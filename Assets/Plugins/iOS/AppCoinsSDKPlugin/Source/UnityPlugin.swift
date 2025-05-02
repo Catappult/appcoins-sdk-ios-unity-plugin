@@ -446,8 +446,6 @@ public struct AppCoinsSDKErrorData {
 
                 let result = await intent.confirm(payload: payload.isEmpty ? nil : payload)
                 
-                print("[AppCoinsSDKPlugin] Result: \(result)")
-                
                 let response: [String: Any] = {
                     switch result {
                     case .success(let verificationResult):
