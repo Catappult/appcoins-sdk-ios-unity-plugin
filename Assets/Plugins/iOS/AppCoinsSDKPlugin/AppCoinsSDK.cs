@@ -2,15 +2,131 @@ using System.Runtime.InteropServices;
 using UnityEngine;
 using System.Threading.Tasks;
 using System;
+using System.Collections.Generic;
 
 [Serializable]
-public class IsAvailableResponse
-{
-    public bool Available;
+public class AppCoinsSDKError {
+    public string Type;
+    public string Message;
+    public string Description;
+    public ErrorRequest Request;
+
+    [Serializable]
+    public class ErrorRequest {
+        public string URL;
+        public string Method;
+        public string Body;
+        public string ResponseData;
+        public int StatusCode;
+    }
+
+    public override string ToString() {
+        if (Request.URL != null) {
+            return $@"""{{
+    ""type"": ""{Type}"",
+    ""message"": ""{Message}"",
+    ""description"": ""{Description}"",
+    ""request"": {{
+        ""url"": ""{Request.URL}"",
+        ""method"": ""{Request.Method}"",
+        ""body"": ""{Request.Body}"",
+        ""responseData"": ""{Request.ResponseData}"",
+        ""statusCode"": {Request.StatusCode}
+    }}
+}}""";
+        }
+        else {
+            return $@"""{{
+    ""type"": ""{Type}"",
+    ""message"": ""{Message}"",
+    ""description"": ""{Description}""
+}}""";
+        }
+    }
 }
 
 [Serializable]
-public class ProductData
+public class AppCoinsSDKResult<T> {
+    public bool IsSuccess;
+    public T Value;
+    public AppCoinsSDKError Error;
+
+    public static AppCoinsSDKResult<T> Success(T value) {
+        return new AppCoinsSDKResult<T> {
+            IsSuccess = true,
+            Value     = value,
+            Error     = null
+        };
+    }
+
+    public static AppCoinsSDKResult<T> Failure(string type, string message, string description) {
+        return new AppCoinsSDKResult<T> {
+            IsSuccess = false,
+            Error     = new AppCoinsSDKError {
+                Type               = type,
+                Message            = message,
+                Description        = description
+            }
+        };
+    }
+}
+
+[Serializable]
+public class AppCoinsSDKPurchaseResult {
+    public string State;
+    public PurchaseValue Value;
+    public AppCoinsSDKError Error;
+
+    [Serializable]
+    public class PurchaseValue {
+        public string VerificationResult;
+        public Purchase Purchase;
+        public AppCoinsSDKError VerificationError;
+    }
+
+    public static AppCoinsSDKPurchaseResult Success(Purchase purchase, string verificationResult, AppCoinsSDKError verificationError = null) {
+        return new AppCoinsSDKPurchaseResult {
+            State = AppCoinsSDK.PURCHASE_STATE_SUCCESS,
+            Value  = new PurchaseValue {
+                Purchase           = purchase,
+                VerificationResult = verificationResult,
+                VerificationError  = verificationError
+            },
+            Error  = null
+        };
+    }
+
+    public static AppCoinsSDKPurchaseResult Pending() {
+        return new AppCoinsSDKPurchaseResult {
+            State = AppCoinsSDK.PURCHASE_STATE_PENDING,
+            Value  = null,
+            Error  = null
+        };
+    }
+
+    public static AppCoinsSDKPurchaseResult Cancelled() {
+        return new AppCoinsSDKPurchaseResult {
+            State = AppCoinsSDK.PURCHASE_STATE_USER_CANCELLED,
+            Value  = null,
+            Error  = null
+        };
+    }
+
+    public static AppCoinsSDKPurchaseResult Failure(string type, string message, string description) {
+        return new AppCoinsSDKPurchaseResult {
+            State = AppCoinsSDK.PURCHASE_STATE_FAILED,
+            Value  = null,
+            Error  = new AppCoinsSDKError {
+                Type               = type,
+                Message            = message,
+                Description        = description
+            }
+        };
+    }
+}
+
+[Serializable]
+public class Product
 {
     public string Sku;
     public string Title;
@@ -22,13 +138,7 @@ public class ProductData
 }
 
 [Serializable]
-public class GetProductsResponse
-{
-    public ProductData[] Products;
-}
-
-[Serializable]
-public class PurchaseData
+public class Purchase
 {
     public string UID;
     public string Sku;
@@ -60,44 +170,26 @@ public class PurchaseData
 }
 
 [Serializable]
-public class GetPurchasesResponse
-{
-    public PurchaseData[] Purchases;
-}
-
-[Serializable]
-public class PurchaseResponse
-{
-    public string State;
-    public string Error;
-    public PurchaseData Purchase;
-}
-
-[Serializable]
-public class ConsumePurchaseResponse
-{
-    public bool Success;
-    public string Error;
-}
-
-[Serializable]
-public class PurchaseIntentData
+public class PurchaseIntent
 {
     public string ID;
-    public ProductData Product;
+    public Product Product;
     public string Timestamp;
 }
 
 public class AppCoinsSDK
 {
-    public const string PURCHASE_PENDING = "PENDING";
-    public const string PURCHASE_ACKNOWLEDGED = "ACKNOWLEDGED";
-    public const string PURCHASE_CONSUMED = "CONSUMED";
+    public const string PURCHASE_PENDING = "pending";
+    public const string PURCHASE_ACKNOWLEDGED = "acknowledged";
+    public const string PURCHASE_CONSUMED = "consumed";
 
     public const string PURCHASE_STATE_SUCCESS = "success";
-    public const string PURCHASE_STATE_UNVERIFIED = "unverified";
-    public const string PURCHASE_STATE_USER_CANCELLED = "user_cancelled";
+    public const string PURCHASE_STATE_PENDING = "pending";
+    public const string PURCHASE_STATE_USER_CANCELLED = "userCancelled";
     public const string PURCHASE_STATE_FAILED = "failed";
+
+    public const string PURCHASE_VERIFICATION_STATE_VERIFIED = "verified";
+    public const string PURCHASE_VERIFICATION_STATE_UNVERIFIED = "unverified";
 
     private static AppCoinsSDK _instance;
     private static readonly object _lock = new object();
@@ -208,24 +300,30 @@ public class AppCoinsSDK
     [AOT.MonoPInvokeCallback(typeof(JsonCallback))]
     private static void OnAvailabilityCheckCompleted(string json)
     {
-        var response = JsonUtility.FromJson<IsAvailableResponse>(json);
-        Instance._tcsIsAvailable.SetResult(response.Available);
+        var result = JsonUtility.FromJson<AppCoinsSDKResult<bool>>(json);
+        Instance._tcsIsAvailable.SetResult(result.IsSuccess);
     }
 #endif
 
     #endregion
 
     #region Get Products
-    private TaskCompletionSource<ProductData[]> _tcsGetProducts;
-    public async Task<ProductData[]> GetProducts(string[] skus = null)
+    private TaskCompletionSource<AppCoinsSDKResult<Product[]>> _tcsGetProducts;
+    public async Task<AppCoinsSDKResult<Product[]>> GetProducts(string[] skus = null)
     {
 #if UNITY_IOS && !UNITY_EDITOR
-        skus ??= new string[0];
-        this._tcsGetProducts = new TaskCompletionSource<ProductData[]>();
+        skus ??= Array.Empty<string>();
+        this._tcsGetProducts = new TaskCompletionSource<AppCoinsSDKResult<Product[]>>();
         _getProducts(skus, skus.Length, OnGetProductsCompleted);
         return await this._tcsGetProducts.Task;        
 #else
-        return await Task.FromResult(new ProductData[0]);
+        return await Task.FromResult(
+            AppCoinsSDKResult<Product[]>.Failure(
+                type:        "systemError",
+                message:     "AppCoins SDK unavailable",
+                description: "GetProducts() called on unsupported platform at AppCoinsSDK.cs:GetProducts"
+            )
+        );
 #endif
     }
 
@@ -233,27 +331,29 @@ public class AppCoinsSDK
     [AOT.MonoPInvokeCallback(typeof(JsonCallback))]
     private static void OnGetProductsCompleted(string json)
     {
-        var response = JsonUtility.FromJson<GetProductsResponse>("{\"Products\":" + json + "}");
-        Instance._tcsGetProducts.SetResult(response.Products);
+        var result = JsonUtility.FromJson<AppCoinsSDKResult<Product[]>>(json);
+        Instance._tcsGetProducts.SetResult(result);
     }
 #endif
 
     #endregion
 
     #region Purchase Product
-    private TaskCompletionSource<PurchaseResponse> _tcsPurchase;
-    public async Task<PurchaseResponse> Purchase(string sku, string payload = "")
+    private TaskCompletionSource<AppCoinsSDKPurchaseResult> _tcsPurchase;
+    public async Task<AppCoinsSDKPurchaseResult> Purchase(string sku, string payload = "")
     {
 #if UNITY_IOS && !UNITY_EDITOR
-        this._tcsPurchase = new TaskCompletionSource<PurchaseResponse>();
+        this._tcsPurchase = new TaskCompletionSource<AppCoinsSDKPurchaseResult>();
         _purchase(sku, payload, OnPurchaseCompleted);
         return await this._tcsPurchase.Task;        
 #else
-        return await Task.FromResult(new PurchaseResponse
-        {
-            State = "error",
-            Error = "AppCoins SDK is not available."
-        });
+        return await Task.FromResult(
+            AppCoinsSDKPurchaseResult.Failure(
+                type:        "systemError",
+                message:     "AppCoins SDK unavailable",
+                description: "Purchase() called on unsupported platform at AppCoinsSDK.cs:Purchase"
+            )
+        );
 #endif
     }
 
@@ -261,36 +361,29 @@ public class AppCoinsSDK
     [AOT.MonoPInvokeCallback(typeof(JsonCallback))]
     private static void OnPurchaseCompleted(string json)
     {
-        try
-        {
-            var response = JsonUtility.FromJson<PurchaseResponse>(json);
-            Instance._tcsPurchase?.TrySetResult(response); // Use TrySetResult to avoid exception if already set
-        }
-        catch (Exception ex)
-        {
-            var fallback = new PurchaseResponse
-            {
-                State = "failed",
-                Error = ex.ToString(),
-                Purchase = new PurchaseData()
-            };
-            Instance._tcsPurchase?.TrySetResult(fallback);
-        }
+        var result = JsonUtility.FromJson<AppCoinsSDKPurchaseResult>(json);
+        Instance._tcsPurchase.SetResult(result);
     }
 #endif
 
     #endregion
 
     #region Get All Purchases
-    private TaskCompletionSource<PurchaseData[]> _tcsGetAllPurchases;
-    public async Task<PurchaseData[]> GetAllPurchases()
+    private TaskCompletionSource<AppCoinsSDKResult<Purchase[]>> _tcsGetAllPurchases;
+    public async Task<AppCoinsSDKResult<Purchase[]>> GetAllPurchases()
     {
 #if UNITY_IOS && !UNITY_EDITOR
-        this._tcsGetAllPurchases = new TaskCompletionSource<PurchaseData[]>();
+        this._tcsGetAllPurchases = new TaskCompletionSource<AppCoinsSDKResult<Purchase[]>>();
         _getAllPurchases(OnGetAllPurchasesCompleted);
         return await this._tcsGetAllPurchases.Task;        
 #else
-        return await Task.FromResult(new PurchaseData[0]);
+        return await Task.FromResult(
+            AppCoinsSDKResult<Purchase[]>.Failure(
+                type:        "systemError",
+                message:     "AppCoins SDK unavailable",
+                description: "GetAllPurchases() called on unsupported platform at AppCoinsSDK.cs:GetAllPurchases"
+            )
+        );
 #endif
     }
 
@@ -298,23 +391,29 @@ public class AppCoinsSDK
     [AOT.MonoPInvokeCallback(typeof(JsonCallback))]
     private static void OnGetAllPurchasesCompleted(string json)
     {
-        var response = JsonUtility.FromJson<GetPurchasesResponse>("{\"Purchases\":" + json + "}");
-        Instance._tcsGetAllPurchases.SetResult(response.Purchases);
+        var result = JsonUtility.FromJson<AppCoinsSDKResult<Purchase[]>>(json);
+        Instance._tcsGetAllPurchases.SetResult(result);
     }
 #endif
 
     #endregion
 
     #region Get Latest Purchase
-    private TaskCompletionSource<PurchaseData> _tcsGetLatestPurchase;
-    public async Task<PurchaseData> GetLatestPurchase(string sku)
+    private TaskCompletionSource<AppCoinsSDKResult<Purchase>> _tcsGetLatestPurchase;
+    public async Task<AppCoinsSDKResult<Purchase>> GetLatestPurchase(string sku)
     {
 #if UNITY_IOS && !UNITY_EDITOR
-        this._tcsGetLatestPurchase = new TaskCompletionSource<PurchaseData>();
+        this._tcsGetLatestPurchase = new TaskCompletionSource<AppCoinsSDKResult<Purchase>>();
         _getLatestPurchase(sku, OnGetLatestPurchaseCompleted);
         return await this._tcsGetLatestPurchase.Task;        
 #else
-        return await Task.FromResult(new PurchaseData());
+        return await Task.FromResult(
+            AppCoinsSDKResult<Purchase>.Failure(
+                type:        "systemError",
+                message:     "AppCoins SDK unavailable",
+                description: "GetLatestPurchase() called on unsupported platform at AppCoinsSDK.cs:GetLatestPurchase"
+            )
+        );
 #endif
     }
 
@@ -322,23 +421,41 @@ public class AppCoinsSDK
     [AOT.MonoPInvokeCallback(typeof(JsonCallback))]
     private static void OnGetLatestPurchaseCompleted(string json)
     {
-        var response = JsonUtility.FromJson<PurchaseData>(json);
-        Instance._tcsGetLatestPurchase.SetResult(response);
+        if (string.IsNullOrWhiteSpace(json)) {
+            Instance._tcsGetLatestPurchase.SetResult(AppCoinsSDKResult<Purchase>.Success(null));
+            return;
+        }
+
+        var dict = MiniJsonAppCoins.Deserialize(json) as Dictionary<string, object>;
+
+        if (dict == null || !dict.ContainsKey("Value") || dict["Value"] == null) {
+            Instance._tcsGetLatestPurchase.SetResult(AppCoinsSDKResult<Purchase>.Success(null));
+            return;
+        }
+        
+        var result = JsonUtility.FromJson<AppCoinsSDKResult<Purchase>>(json);
+        Instance._tcsGetLatestPurchase.SetResult(result);
     }
 #endif
 
     #endregion
 
     #region Get Unfinished Purchases
-    private TaskCompletionSource<PurchaseData[]> _tcsGetUnfinishedPurchases;
-    public async Task<PurchaseData[]> GetUnfinishedPurchases()
+    private TaskCompletionSource<AppCoinsSDKResult<Purchase[]>> _tcsGetUnfinishedPurchases;
+    public async Task<AppCoinsSDKResult<Purchase[]>> GetUnfinishedPurchases()
     {
 #if UNITY_IOS && !UNITY_EDITOR
-        this._tcsGetUnfinishedPurchases = new TaskCompletionSource<PurchaseData[]>();
+        this._tcsGetUnfinishedPurchases = new TaskCompletionSource<AppCoinsSDKResult<Purchase[]>>();
         _getUnfinishedPurchases(OnGetUnfinishedPurchasesCompleted);
         return await this._tcsGetUnfinishedPurchases.Task;        
 #else
-        return await Task.FromResult(new PurchaseData[0]);
+        return await Task.FromResult(
+            AppCoinsSDKResult<Purchase[]>.Failure(
+                type:        "systemError",
+                message:     "AppCoins SDK unavailable",
+                description: "GetUnfinishedPurchases() called on unsupported platform at AppCoinsSDK.cs:GetUnfinishedPurchases"
+            )
+        );
 #endif
     }
 
@@ -346,27 +463,29 @@ public class AppCoinsSDK
     [AOT.MonoPInvokeCallback(typeof(JsonCallback))]
     private static void OnGetUnfinishedPurchasesCompleted(string json)
     {
-        var response = JsonUtility.FromJson<GetPurchasesResponse>("{\"Purchases\":" + json + "}");
-        Instance._tcsGetUnfinishedPurchases.SetResult(response.Purchases);
+        var result = JsonUtility.FromJson<AppCoinsSDKResult<Purchase[]>>(json);
+        Instance._tcsGetUnfinishedPurchases.SetResult(result);
     }
 #endif
 
     #endregion
 
     #region Consume Purchase
-    private TaskCompletionSource<ConsumePurchaseResponse> _tcsConsumePurchase;
-    public async Task<ConsumePurchaseResponse> ConsumePurchase(string sku)
+    private TaskCompletionSource<AppCoinsSDKResult<bool>> _tcsConsumePurchase;
+    public async Task<AppCoinsSDKResult<bool>> ConsumePurchase(string sku)
     {
 #if UNITY_IOS && !UNITY_EDITOR
-        this._tcsConsumePurchase = new TaskCompletionSource<ConsumePurchaseResponse>();
+        this._tcsConsumePurchase = new TaskCompletionSource<AppCoinsSDKResult<bool>>();
         _consumePurchase(sku, OnConsumePurchaseCompleted);
         return await this._tcsConsumePurchase.Task;        
 #else
-        return await Task.FromResult(new ConsumePurchaseResponse
-        {
-            Success = false,
-            Error = "AppCoins SDK is not available."
-        });
+        return await Task.FromResult(
+            AppCoinsSDKResult<bool>.Failure(
+                type:        "systemError",
+                message:     "AppCoins SDK unavailable",
+                description: "ConsumePurchase() called on unsupported platform at AppCoinsSDK.cs:ConsumePurchase"
+            )
+        );
 #endif
     }
 
@@ -374,8 +493,8 @@ public class AppCoinsSDK
     [AOT.MonoPInvokeCallback(typeof(JsonCallback))]
     private static void OnConsumePurchaseCompleted(string json)
     {
-        var response = JsonUtility.FromJson<ConsumePurchaseResponse>(json);
-        Instance._tcsConsumePurchase.SetResult(response);
+        var result = JsonUtility.FromJson<AppCoinsSDKResult<bool>>(json);
+        Instance._tcsConsumePurchase.SetResult(result);
     }
 #endif
 
@@ -390,15 +509,21 @@ public class AppCoinsSDK
     #endregion
 
     #region Get Purchase Intent
-    private TaskCompletionSource<PurchaseIntentData> _tcsGetPurchaseIntent;
-    public async Task<PurchaseIntentData> GetPurchaseIntent()
+    private TaskCompletionSource<AppCoinsSDKResult<PurchaseIntent>> _tcsGetPurchaseIntent;
+    public async Task<AppCoinsSDKResult<PurchaseIntent>> GetPurchaseIntent()
     {
 #if UNITY_IOS && !UNITY_EDITOR
-        this._tcsGetPurchaseIntent = new TaskCompletionSource<PurchaseIntentData>();
+        this._tcsGetPurchaseIntent = new TaskCompletionSource<AppCoinsSDKResult<PurchaseIntent>>();
         _getPurchaseIntent(OnGetPurchaseIntentCompleted);
         return await this._tcsGetPurchaseIntent.Task;        
 #else
-        return await Task.FromResult(new PurchaseIntentData());
+        return await Task.FromResult(
+            AppCoinsSDKResult<PurchaseIntent>.Failure(
+                type:        "systemError",
+                message:     "AppCoins SDK unavailable",
+                description: "GetPurchaseIntent() called on unsupported platform at AppCoinsSDK.cs:GetPurchaseIntent"
+            )
+        );
 #endif
     }
 
@@ -406,29 +531,52 @@ public class AppCoinsSDK
     [AOT.MonoPInvokeCallback(typeof(JsonCallback))]
     private static void OnGetPurchaseIntentCompleted(string json)
     {
-        var response = JsonUtility.FromJson<PurchaseIntentData>(json);
-        Instance._tcsGetPurchaseIntent.SetResult(response);
+        if (string.IsNullOrWhiteSpace(json)) {
+            Instance._tcsGetPurchaseIntent.SetResult(AppCoinsSDKResult<PurchaseIntent>.Success(null));
+            return;
+        }
+
+        var dict = MiniJsonAppCoins.Deserialize(json) as Dictionary<string, object>;
+
+        if (dict == null || !dict.ContainsKey("Value") || dict["Value"] == null) {
+            Instance._tcsGetPurchaseIntent.SetResult(AppCoinsSDKResult<PurchaseIntent>.Success(null));
+            return;
+        }
+
+        var result = JsonUtility.FromJson<AppCoinsSDKResult<PurchaseIntent>>(json);
+        Instance._tcsGetPurchaseIntent.SetResult(result);
     }
 #endif
 
     #endregion
 
     #region Confirm Purchase Intent
-    private TaskCompletionSource<PurchaseResponse> _tcsConfirmPurchaseIntent;
-    public async Task<PurchaseResponse> ConfirmPurchaseIntent(string payload = "")
+    private TaskCompletionSource<AppCoinsSDKPurchaseResult> _tcsConfirmPurchaseIntent;
+    public async Task<AppCoinsSDKPurchaseResult> ConfirmPurchaseIntent(string payload = "")
     {
 #if UNITY_IOS && !UNITY_EDITOR
-        this._tcsConfirmPurchaseIntent = new TaskCompletionSource<PurchaseResponse>();
-        _confirmPurchaseIntent(payload, OnPurchaseCompleted);
+        this._tcsConfirmPurchaseIntent = new TaskCompletionSource<AppCoinsSDKPurchaseResult>();
+        _confirmPurchaseIntent(payload, OnConfirmPurchaseIntentCompleted);
         return await this._tcsConfirmPurchaseIntent.Task;        
 #else
-        return await Task.FromResult(new PurchaseResponse
-        {
-            State = "error",
-            Error = "AppCoins SDK is not available."
-        });
+        return await Task.FromResult(
+            AppCoinsSDKPurchaseResult.Failure(
+                type:        "systemError",
+                message:     "AppCoins SDK unavailable",
+                description: "ConfirmPurchaseIntent() called on unsupported platform at AppCoinsSDK.cs:ConfirmPurchaseIntent"
+            )
+        );
 #endif
     }
+
+#if UNITY_IOS && !UNITY_EDITOR
+    [AOT.MonoPInvokeCallback(typeof(JsonCallback))]
+    private static void OnConfirmPurchaseIntentCompleted(string json)
+    {
+        var result = JsonUtility.FromJson<AppCoinsSDKPurchaseResult>(json);
+        Instance._tcsConfirmPurchaseIntent.SetResult(result);
+    }
+#endif
 
     #endregion
 
@@ -449,7 +597,4 @@ public class AppCoinsSDK
         _startPurchaseUpdates();
     }
     #endregion
-
 }
-
-
