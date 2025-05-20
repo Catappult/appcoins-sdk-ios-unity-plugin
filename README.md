@@ -1,4 +1,4 @@
-The iOS Billing SDK is a straightforward solution for implementing Catappult billing. Its Unity Plugin provides a simple interface for Unity games to communicate with the SDK. It comprises a Billing client that integrates with AppCoins Wallet, enabling you to retrieve your products from Catappult and facilitate the purchase of those items.
+The iOS Billing SDK is a straightforward solution for implementing Catappult billing. Its Unity Plugin provides a simple interface for Unity games to communicate with the SDK. It comprises a Billing client that enables you to retrieve your products from Catappult and facilitate the purchase of those items.
 
 ## In Summary
 
@@ -38,7 +38,7 @@ Now that you have the Plugin set-up you can start making use of its functionalit
    }
    ```
 2. **Query In-App Products**  
-   You should start by getting the In-App Products you want to make available to the user. You can do this by calling `Product.products`.  
+   You should start by getting the In-App Products you want to make available to the user. You can do this by calling `AppCoinsSDK.Instance.GetProducts`.
    This method can either return all of your Catappult In-App Products or a specific list.
 
    1. `AppCoinsSDK.Instance.GetProducts()`
@@ -46,14 +46,26 @@ Now that you have the Plugin set-up you can start making use of its functionalit
       Returns all application Catappult In-App Products:
 
       ```csharp
-      var products = await AppCoinsSDK.Instance.GetProducts();
+      var productsResult = await AppCoinsSDK.Instance.GetProducts();
+      if (!productsResult.IsSuccess) { 
+        Debug.Log("Failed to get products: " + productsResult.Error);
+        return;
+      }
+      
+      var products = productsResult.Value;
       ```
    2. `AppCoinsSDK.Instance.GetProducts(skus)`
 
       Returns a specific list of Catappult In-App Products:
 
       ```csharp
-      var products = await AppCoinsSDK.Instance.GetProducts(new string[] { "coins_100", "gas" });
+      var productsResult = await AppCoinsSDK.Instance.GetProducts(new string[] { "coins_100", "gas" });
+      if (!productsResult.IsSuccess) { 
+        Debug.Log("Failed to get products: " + productsResult.Error);
+        return;
+      }
+      
+      var products = productsResult.Value;
       ```
 
    > ⚠️ **Warning:** You will only be able to query your In-App Products once your application is reviewed and approved on Aptoide Connect.
@@ -61,9 +73,9 @@ Now that you have the Plugin set-up you can start making use of its functionalit
 3. **Purchase In-App Product**  
    To purchase an In-App Product you must call the function `AppCoinsSDK.Instance.Purchase(sku, payload)`. The Plugin will handle all of the purchase logic for you and it will return you on completion the result of the purchase. This result is an object with the following properties:        
 
-   1. State: `string` (`AppCoinsSDK.PURCHASE_STATE_SUCCESS`, `AppCoinsSDK.PURCHASE_STATE_UNVERIFIED`, `AppCoinsSDK.PURCHASE_STATE_USER_CANCELLED`, `AppCoinsSDK.PURCHASE_STATE_FAILED`)
-   2. Error: `string`
-   3. Purchase: `PurchaseData`
+   1. State: `string` (`AppCoinsSDK.PURCHASE_STATE_SUCCESS`, `AppCoinsSDK.PURCHASE_STATE_PENDING`, `AppCoinsSDK.PURCHASE_STATE_USER_CANCELLED`, `AppCoinsSDK.PURCHASE_STATE_FAILED`)
+   2. Value: `PurchaseValue`
+   3. Error: `AppCoinsSDKError`
 
    In case of success the application will verify the transaction’s signature locally. After this verification you should handle its result:
 
@@ -72,38 +84,85 @@ Now that you have the Plugin set-up you can start making use of its functionalit
 
    In case of failure you can deal with different types of errors.
 
-   You can also pass a Payload to the purchase method in order to associate some sort of information with a specific purchase. You can use this for example to associate a specific user with a Purchase: `gas.purchase(payload: "User123")`.  
+   You can also pass a Payload to the purchase method in order to associate some sort of information with a specific purchase. You can use this for example to associate a specific user with a Purchase: `AppCoinsSDK.Instance.Purchase("gas", "User123")`.  
    <br/>
 
    ```csharp
-   var purchaseResponse = await AppCoinsSDK.Instance.Purchase("gas", "User123");
-
-   if (purchaseResponse.State == AppCoinsSDK.PURCHASE_STATE_SUCCESS)
+   async public void Purchase()
    {
-     var response = await AppCoinsSDK.Instance.ConsumePurchase(purchaseResponse.PurchaseSku);
-
-     if (response.Success)
-     {
-         Debug.Log("Purchase consumed successfully");
-     }
-     else
-     {
-         Debug.Log("Error consuming purchase: " + response.Error);
+   	var purchaseResult = await AppCoinsSDK.Instance.Purchase("gas", "User123");
+   	HandlePurchase(purchaseResult);
+   }
+   
+   async public void HandlePurchase(AppCoinsSDKPurchaseResult purchaseResult)
+   {
+     switch (purchaseResult.State) {
+       
+       case AppCoinsSDK.PURCHASE_STATE_SUCCESS:
+       
+         switch (purchaseResult.Value.VerificationResult) {
+           case AppCoinsSDK.PURCHASE_VERIFICATION_STATE_VERIFIED:
+             // Consume the item and give it to the user
+             string packageName = purchaseResult.Value.Purchase.Verification.Data.PackageName;
+             string productId = purchaseResult.Value.Purchase.Verification.Data.ProductId;
+             string purchaseToken = purchaseResult.Value.Purchase.Verification.Data.PurchaseToken;
+             
+             var consumeResult = await AppCoinsSDK.Instance.ConsumePurchase(purchaseResult.Value.Purchase.Sku);
+             
+             if (consumeResult.IsSuccess) { 
+               // Purchase consumed successfully
+             }
+             break;
+           
+           case AppCoinsSDK.PURCHASE_VERIFICATION_STATE_UNVERIFIED:
+             // Handle unverified purchase according to your game logic
+             break;  
+         }
+         break;
+         
+       case AppCoinsSDK.PURCHASE_STATE_PENDING:
+         // Handle pending purchase according to your game logic
+         break;
+       
+       case AppCoinsSDK.PURCHASE_STATE_USER_CANCELLED:
+         // Handle cancelled purchase according to your game logic
+         break;
+         
+       case AppCoinsSDK.PURCHASE_STATE_FAILED:
+         // Handle failed purchase according to your game logic
+         break;
      }
    }
    ```
-4. **Handle Indirect Purchases**
+4. **Handle Purchase Intents**
 
-   In addition to standard In-App Purchases, the AppCoins SDK supports **Indirect In-App Purchases**. These are purchases that users do not initiate directly through a Buy action within the application. Common use cases include:
+   In addition to standard In-App Purchases, the AppCoins SDK supports In-App Purchase Intents – purchases not directly triggered by a user action (e.g., tapping a “Buy” button within the app). Common use cases include:
 
    1. Purchasing an item directly from a catalog of In-App Products in the Aptoide Store.
    2. Buying an item through a web link.
+  
+   Purchase Intents can be initiated through the following URL format:
 
-   The `AppCoinsPurchaseManager.OnPurchaseUpdated` Unity Action allows developers to manage these purchases and assign consumables to users. This action continuously streams purchase updates, ensuring real-time transaction synchronization.
+   ```text
+   {domain}.iap://wallet.appcoins.io/purchase?product={sku}&oemid={oemid}&discount_policy={discount_policy}
+   ```
 
-   The event returns a `PurchaseResponse` object, which should be handled in the same way as a standard In-App Purchase.
+   1. `domain` – The Bundle ID of your application.
+   2. `oemid` – The OEM ID associated with your developer account on Aptoide Connect.
+   3. `discount_policy` – The discount policy to apply (e.g., D2C).
+
+   The `AppCoinsPurchaseManager.OnPurchaseUpdated` Unity Action allows developers to manage these purchases and deliver consumables to users. This action continuously streams purchase updates, enabling seamless transaction handling.
+
+   The event returns a `PurchaseIntent` object, which you can manage according to your application logic. The SDK provides two methods to handle Purchase Intents:
+
+   1. `AppCoinsSDK.Instance.ConfirmPurchaseIntent()`: Confirms and processes the purchase intent. Equivalent to calling `AppCoinsSDK.Instance.Purchase()` for direct purchases.
+   2. `AppCoinsSDK.Instance.RejectPurchaseIntent()`: Rejects the intent, making it invalid for future use.
+
+   If you prefer not to handle the intent immediately – for example, waiting for the user to log in so the purchase can be linked to their account – you can ignore the intent at first. Later, when your logic allows, you can call `AppCoinsSDK.Instance.GetPurchaseIntent()`, which returns the current pending intent. You can then confirm or reject it as needed.
 
    To properly handle purchase updates, define the subscription within a singleton class, ensuring it remains active for the application’s lifecycle. Use the same HandlePurchase method applied to standard purchases.
+
+   Below is a skeleton implementation for handling In-App Purchase Intents.
    <br/>
 
    ```csharp
@@ -123,21 +182,44 @@ Now that you have the Plugin set-up you can start making use of its functionalit
      AppCoinsPurchaseManager.OnPurchaseUpdated += HandlePurchase;
    }
    
-   // Already defined previously
-   async public void HandlePurchase(PurchaseResponse purchaseResponse)
+   // HINT: You can use the same handle method for both regular and intent IAP
+   async public void HandlePurchase(AppCoinsSDKPurchaseResult purchaseResult)
    {
-     if (purchaseResponse.State == AppCoinsSDK.PURCHASE_STATE_SUCCESS)
-     {
-       var response = await AppCoinsSDK.Instance.ConsumePurchase(purchaseResponse.PurchaseSku);
+     switch (purchaseResult.State) {
        
-       if (response.Success)
-       {
-         Debug.Log("Purchase consumed successfully");
-       }
-       else
-       {
-         Debug.Log("Error consuming purchase: " + response.Error);
-       }
+       case AppCoinsSDK.PURCHASE_STATE_SUCCESS:
+       
+         switch (purchaseResult.Value.VerificationResult) {
+           case AppCoinsSDK.PURCHASE_VERIFICATION_STATE_VERIFIED:
+             // Consume the item and give it to the user
+             string packageName = purchaseResult.Value.Purchase.Verification.Data.PackageName;
+             string productId = purchaseResult.Value.Purchase.Verification.Data.ProductId;
+             string purchaseToken = purchaseResult.Value.Purchase.Verification.Data.PurchaseToken;
+             
+             var consumeResult = await AppCoinsSDK.Instance.ConsumePurchase(purchaseResult.Value.Purchase.Sku);
+             
+             if (consumeResult.IsSuccess) { 
+               // Purchase consumed successfully
+             }
+             break;
+           
+           case AppCoinsSDK.PURCHASE_VERIFICATION_STATE_UNVERIFIED:
+             // Handle unverified purchase according to your game logic
+             break;  
+         }
+         break;
+         
+       case AppCoinsSDK.PURCHASE_STATE_PENDING:
+         // Handle pending purchase according to your game logic
+         break;
+       
+       case AppCoinsSDK.PURCHASE_STATE_USER_CANCELLED:
+         // Handle cancelled purchase according to your game logic
+         break;
+         
+       case AppCoinsSDK.PURCHASE_STATE_FAILED:
+         // Handle failed purchase according to your game logic
+         break;
      }
    }
    ```
@@ -150,21 +232,39 @@ Now that you have the Plugin set-up you can start making use of its functionalit
       This method returns all purchases that the user has performed in your application.
 
       ```csharp
-      var purchases = await AppCoinsSDK.Instance.GetAllPurchases();
+      var purchasesResult = await AppCoinsSDK.Instance.GetAllPurchases();
+      if (!purchasesResult.IsSuccess) { 
+        Debug.Log("Failed to get purchases: " + purchasesResult.Error);
+        return;
+      }
+      
+      var purchases = purchasesResult.Value;
       ```
    2. `AppCoinsSDK.Instance.GetLatestPurchase(string sku)`
 
       This method returns the latest user purchase for a specific In-App Product.
 
       ```csharp
-      var latestPurchase = await AppCoinsSDK.Instance.GetLatestPurchase("gas");
+      var latestPurchaseResult = await AppCoinsSDK.Instance.GetLatestPurchase("gas");
+      if (!latestPurchaseResult.IsSuccess) { 
+        Debug.Log("Failed to get latest purchase: " + latestPurchaseResult.Error);
+        return;
+      }
+      
+      var latestPurchase = latestPurchaseResult.Value;
       ```
    3. `AppCoinsSDK.Instance.GetUnfinishedPurchases()`
 
       This method returns all of the user’s unfinished purchases in the application. An unfinished purchase is any purchase that has neither been acknowledged (verified by the SDK) nor consumed. You can use this method for consuming any unfinished purchases.
 
       ```csharp
-      var unfinishedPurchases = await AppCoinsSDK.Instance.GetUnfinishedPurchases();
+      var unfinishedPurchasesResult = await AppCoinsSDK.Instance.GetUnfinishedPurchases();
+      if (!unfinishedPurchasesResult.IsSuccess) { 
+        Debug.Log("Failed to get unfinished purchases: " + unfinishedPurchasesResult.Error);
+        return;
+      }
+      
+      var unfinishedPurchases = unfinishedPurchasesResult.Value;
       ```
 
 ### Testing
@@ -199,35 +299,70 @@ Where:
   - `true` → Enables the AppCoins SDK for testing.
   - `false` → Disables the AppCoins SDK, allowing Apple Billing to be tested instead.
 
-### Sandbox Testing
+### Sandbox
 
-You can test the in-app purchase (IAP) functionality using Catappult’s **Sandbox environment**. Follow these steps to set it up:
-
-1. Retrieve your testing wallet address by calling `AppCoinsSDK.Instance.GetTestingWalletAddress()`.
-2. Add your testing wallet address to the **Sandbox menu** in the Developer Console, and use this wallet to make test purchases in your app.
-
-> ⚠️ **Warning:** You must have proven ownership of the app to access the Sandbox environment and test IAPs.
-
-> ⚠️ **Warning:** Do not delete the app from the testing device, as this will remove the testing wallet. If the app is deleted, you’ll need to obtain a new wallet address and add it again to the Sandbox.
-
-#### Testing In-App Purchases
-
-1. Select the item you wish to purchase in the app.
-2. Choose the **Sandbox** option for the transaction.
-3. Once the purchase is completed, verify the transaction in the Wallet by checking the **Sandbox transactions**.
-4. Ensure the purchased item is correctly received in the app.
-
-If all steps are successful, your billing solution is fully integrated!
-
-For more detailed instructions, refer to [Catappult's documentation](https://docs.catappult.io/docs/ios-sandbox-environment).
+To verify the successful setup of your billing integration, we offer a sandbox environment where you can simulate purchases and ensure that your clients can smoothly purchase your products. Documentation on how to use this environment can be found at: [Sandbox](https://docs.catappult.io/docs/ios-sandbox-environment)
 
 ## Classes Definition and Properties
 
-The Unity Plugin integration is based on three main classes of objects that handle its logic:
+The Unity Plugin integration is based on a few main classes of objects that handle its logic:
 
-### ProductData
+### AppCoinsSDKResult
 
-`ProductData` represents an in-app product.
+Represents the structured result of a request made to the AppCoins SDK.
+
+**Properties:**
+
+- `IsSuccess`: Bool - Represents the structured result of a request made to the AppCoins SDK.
+- `Value`: Any? - The response object returned on success.
+- `Error`: AppCoinsSDKError? - The error information returned on failure.
+
+### AppCoinsSDKError
+
+Represents the structured error returned from a request made to the AppCoins SDK.
+
+**Properties:**
+
+- `Type`: String - The category or identifier of the error.
+- `Message`: String - A short, human-readable description of the error.
+- `Description`: String - A detailed explanation of the error.
+- `Request`: ErrorRequest? - Information about the request that caused the error.
+
+#### ErrorRequest
+
+Represents the network request associated with the error returned.
+
+**Properties:**
+
+- `URL`: String - The URL of the request.
+- `Method`: String - The HTTP method used (e.g., GET, POST).
+- `Body`: String - The body payload of the request.
+- `ResponseData`: String - The response body received.
+- `StatusCode`: Int - The HTTP status code of the response.
+
+### AppCoinsSDKPurchaseResult
+
+Represents the structured result of a purchase made trough AppCoins SDK.
+
+**Properties:**
+
+- `State`: String - The state of the purchase action. Possible values: SUCCESS, PENDING, USER_CANCELLED, FAILED.
+- `Value`: PurchaseValue - The purchase value object returned when the purchase is successful.
+- `Error`: AppCoinsSDKError? - The error information returned when the purchase fails.
+
+#### PurchaseValue
+
+Represents the purchase data returned on a successful purchase.
+
+**Properties:**
+
+- `VerificationResult`: String - Indicates whether the purchase was successfully verified by the SDK. Possible values: VERIFIED, UNVERIFIED.
+- `Purchase`: Purchase - The purchase object returned on success.
+- `VerificationError`: AppCoinsSDKError? - The error associated with an unverified verificationResult.
+
+### Product
+
+`Product` represents an in-app product.
 
 **Properties:**
 
@@ -239,9 +374,9 @@ The Unity Plugin integration is based on three main classes of objects that hand
 - `PriceLabel`: String - The label of the price displayed to the user. Example: €0.93
 - `PriceSymbol`: String - The symbol of the geolocalized currency. Example: €
 
-### PurchaseData
+### Purchase
 
-`PurchaseData` represents an in-app purchase.
+`Purchase` represents an in-app purchase.
 
 **Properties:**
 
@@ -277,7 +412,12 @@ The Unity Plugin integration is based on three main classes of objects that hand
 - `PurchaseState`: Integer - The purchase state of the order. Possible values are: 0 (Purchased) and 1 (Canceled)
 - `DeveloperPayload`: String - A developer-specified string that contains supplemental information about an order. Example: myOrderId:12345678
 
+### PurchaseIntent
 
-### AppCoinsSDK
+`PurchaseIntent` represents a user’s intent to make an in-app purchase. It is typically used to confirm or reject a purchase initiated outside the application.
 
-This class is responsible for general purpose methods.
+**Properties:**
+
+- `id`: String - A unique identifier for the purchase intent.
+- `timestamp`: Date - The date and time when the intent was created.
+- `product`: Product - The product the user intends to purchase.
