@@ -4,6 +4,10 @@
 typedef void (*JsonCallback)(const char *json);
 
 extern "C" {
+    void _initialize() {
+        [UnityPlugin.shared initialize];
+    }
+
     void _handleDeepLink(const char *url, JsonCallback callback) {
         NSString *urlString = [NSString stringWithUTF8String:url];
 
@@ -171,13 +175,23 @@ extern "C" {
         }];
     }
 
-    const char * _Nullable _getTestingWalletAddress() {
-        NSString *address = [UnityPlugin.shared getTestingWalletAddress];
-        if (address) {
-            return [address UTF8String];
-        } else {
-            return NULL;
-        }
+    void _getTestingWalletAddress(JsonCallback callback) {
+        [UnityPlugin.shared getTestingWalletAddressWithCompletion:^(NSDictionary *data) {
+            NSError *error = nil;
+            NSData *jsonData = [NSJSONSerialization dataWithJSONObject:data options:0 error:&error];
+            if (!jsonData) {
+                NSLog(@"Failed to serialize JSON: %@", error);
+                if (callback) {
+                    callback(""); // Call with an empty string or error message
+                }
+                return;
+            }
+            
+            NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+            if (callback) {
+                callback([jsonString UTF8String]);
+            }
+        }];
     }
 
     void _getPurchaseIntent(JsonCallback callback) {

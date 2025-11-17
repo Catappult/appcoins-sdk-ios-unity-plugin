@@ -256,6 +256,10 @@ public struct AppCoinsSDKErrorData {
 @objc public class UnityPlugin : NSObject {
     
     @objc public static let shared = UnityPlugin()
+    
+    @objc public func initialize() {
+        AppcSDK.initialize()
+    }
 
     @objc public func handleDeepLink(url: String, completion: @escaping ([String: Any]) -> Void) {
         Task {
@@ -423,8 +427,11 @@ public struct AppCoinsSDKErrorData {
         }
     }
     
-    @objc public func getTestingWalletAddress() -> String? {
-        return Sandbox.getTestingWalletAddress()
+    @objc public func getTestingWalletAddress(completion: @escaping ([String: Any]) -> Void) {
+        Task {
+            let address = await Sandbox.getTestingWalletAddress()
+            completion( ["IsSuccess": true, "Value": address ?? ""] )
+        }
     }
     
     @objc public func getPurchaseIntent(completion: @escaping ([String: Any]) -> Void) {
