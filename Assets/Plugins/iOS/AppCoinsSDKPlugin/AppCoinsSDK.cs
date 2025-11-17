@@ -199,6 +199,9 @@ public class AppCoinsSDK
     private static bool _isObservingPurchases = false;
 
     [DllImport("__Internal")]
+    private static extern void _initialize();
+
+    [DllImport("__Internal")]
     private static extern void _handleDeepLink(string url, JsonCallback callback);
 
     [DllImport("__Internal")]
@@ -223,7 +226,7 @@ public class AppCoinsSDK
     private static extern void _consumePurchase(string sku, JsonCallback callback);
 
     [DllImport("__Internal")]
-    private static extern IntPtr _getTestingWalletAddress();
+    private static extern IntPtr _getTestingWalletAddress(JsonCallback callback);
 
     [DllImport("__Internal")]
     private static extern void _getPurchaseIntent(JsonCallback callback);
@@ -237,6 +240,12 @@ public class AppCoinsSDK
     [DllImport("__Internal")]
     private static extern void _startPurchaseUpdates();
 
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+    private static void InitializeSDK()
+    {
+        var _ = AppCoinsSDK.Instance;
+    }
+
     public static AppCoinsSDK Instance
     {
         get
@@ -248,6 +257,8 @@ public class AppCoinsSDK
                     if (_instance == null)
                     {
                         _instance = new AppCoinsSDK();
+
+                        _initialize();
 
                         // Check for cold-start deep link (only if iOS)
                         if (!string.IsNullOrEmpty(Application.absoluteURL))
@@ -281,6 +292,13 @@ public class AppCoinsSDK
     {
         Debug.Log("Deep link response: " + json);
     }
+
+    #region Initialize
+    public void Initialize()
+    {
+        _initialize();
+    }
+    #endregion
 
     #region Is Available
     private TaskCompletionSource<bool> _tcsIsAvailable;
@@ -501,11 +519,35 @@ public class AppCoinsSDK
     #endregion
 
     #region Get Testing Wallet Address
-    public string GetTestingWalletAddress()
+
+    private TaskCompletionSource<AppCoinsSDKResult<string>> _tcsGetTestingWalletAddress;
+
+    public async Task<AppCoinsSDKResult<string>> GetTestingWalletAddress()
     {
-        IntPtr ptr = _getTestingWalletAddress();
-        return ptr == IntPtr.Zero ? null : Marshal.PtrToStringAnsi(ptr);
+#if UNITY_IOS && !UNITY_EDITOR
+        _tcsGetTestingWalletAddress = new TaskCompletionSource<AppCoinsSDKResult<string>>();
+        _getTestingWalletAddress(OnGetTestingWalletAddressCompleted);
+        return await this._tcsGetTestingWalletAddress.Task;
+#else
+        return await Task.FromResult(
+            AppCoinsSDKResult<string>.Failure(
+                type:        "systemError",
+                message:     "AppCoins SDK unavailable",
+                description: "GetTestingWalletAddress() called on unsupported platform at AppCoinsSDK.cs:GetTestingWalletAddress"
+            )
+        );
+#endif
     }
+
+#if UNITY_IOS && !UNITY_EDITOR
+    [AOT.MonoPInvokeCallback(typeof(JsonCallback))]
+    private static void OnGetTestingWalletAddressCompleted(string json)
+    {
+        var result = JsonUtility.FromJson<AppCoinsSDKResult<string>>(json);
+        Instance._tcsGetTestingWalletAddress.SetResult(result);
+    }
+#endif
+
     #endregion
 
     #region Get Purchase Intent
