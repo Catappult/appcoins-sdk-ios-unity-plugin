@@ -27,7 +27,7 @@ The billing flow in your application with the Plugin is as follows:
 Now that you have the Plugin set-up you can start making use of its functionalities.
 
 1. **Check AppCoins Billing Availability**  
-   The AppCoins Billing will only be available on devices with an iOS version equal to or higher than 17.4 and only if the application was not installed through the Apple App St. Therefore, before attempting any purchase, you should check if the SDK is available by calling `AppCoinsSDK.Instance.IsAvailable()`.
+   The AppCoins Billing will only be available on devices with an iOS version equal to or higher than 17.4 and only if the application was not installed through the Apple App Store. Therefore, before attempting any purchase, you should check if the SDK is available by calling `AppCoinsSDK.Instance.IsAvailable()`.
 
    ```csharp
    var isAvailable = await AppCoinsSDK.Instance.IsAvailable();
