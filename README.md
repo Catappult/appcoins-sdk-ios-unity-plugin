@@ -217,10 +217,12 @@ Now that you have the Plugin set-up you can start making use of its functionalit
 
 5. **Handle Indirect Purchases**
 
-   In addition to standard In-App Purchases, the AppCoins SDK supports **Indirect In-App Purchases**. These are purchases that users do not initiate directly through a Buy action within the application. Common use cases include:
+   In addition to standard In-App Purchases, the AppCoins SDK supports In-App Purchase Intents – purchases not directly triggered by a user action (e.g., tapping a “Buy” button within the app). Common use cases include:
 
    1. Purchasing an item directly from a catalog of In-App Products in the Aptoide Store.
    2. Buying an item through a web link.
+  
+   Purchase Intents can be initiated through the following URL format:
 
    The `AppCoinsPurchaseManager.OnPurchaseUpdated` Unity Action allows developers to manage these purchase intents. This event continuously streams purchase intent updates, ensuring real-time transaction synchronization.
 
@@ -409,7 +411,7 @@ Where:
   - `true` → Enables the AppCoins SDK for testing.
   - `false` → Disables the AppCoins SDK, allowing Apple Billing to be tested instead.
 
-### Sandbox Testing
+### Sandbox
 
 To verify the successful setup of your billing integration, we offer a sandbox environment where you can simulate purchases and ensure that your clients can smoothly purchase your products. Documentation on how to use this environment can be found at: [Sandbox](https://docs.connect.aptoide.com/docs/ios-sandbox-environment)
 
@@ -542,6 +544,6 @@ The Unity Plugin integration is based on several main classes of objects that ha
 - `ResponseData`: String - The response data
 - `StatusCode`: Integer - The HTTP status code
 
-### AppCoinsSDK
+`PurchaseIntent` represents a user’s intent to make an in-app purchase. It is typically used to confirm or reject a purchase initiated outside the application.
 
 This class is responsible for general purpose methods and provides singleton access via `AppCoinsSDK.Instance`.
