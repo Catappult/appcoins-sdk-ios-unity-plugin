@@ -1,4 +1,4 @@
-The iOS Billing SDK is a straightforward solution for implementing Catappult billing. Its Unity Plugin provides a simple interface for Unity games to communicate with the SDK. It comprises a Billing client that integrates with AppCoins Wallet, enabling you to retrieve your products from Catappult and facilitate the purchase of those items.
+The iOS Billing SDK is a simple solution to implement Aptoide billing. Its Unity Plugin provides a simple interface for Unity games to communicate with the SDK. It consists of a Billing client that allows you to get your products from Aptoide Connect and process the purchase of those items.
 
 ## In Summary
 
@@ -27,7 +27,7 @@ The billing flow in your application with the Plugin is as follows:
 Now that you have the Plugin set-up you can start making use of its functionalities.
 
 1. **Check AppCoins Billing Availability**  
-   The AppCoins Billing will only be available on devices in the European Union with an iOS version equal to or higher than 17.4 and only in applications distributed through the Aptoide iOS App Store. Therefore, before attempting any purchase, you should check if the SDK is available by calling `AppCoinsSDK.Instance.IsAvailable()`.
+   The AppCoins Billing will only be available on devices with an iOS version equal to or higher than 17.4 and only if the application was not installed through the Apple App St. Therefore, before attempting any purchase, you should check if the SDK is available by calling `AppCoinsSDK.Instance.IsAvailable()`.
 
    ```csharp
    var isAvailable = await AppCoinsSDK.Instance.IsAvailable();
