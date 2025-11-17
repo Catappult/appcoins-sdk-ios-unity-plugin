@@ -411,14 +411,7 @@ Where:
 
 ### Sandbox Testing
 
-You can test the in-app purchase (IAP) functionality using Catappult’s **Sandbox environment**. Follow these steps to set it up:
-
-1. Retrieve your testing wallet address by calling `AppCoinsSDK.Instance.GetTestingWalletAddress()`.
-2. Add your testing wallet address to the **Sandbox menu** in the Developer Console, and use this wallet to make test purchases in your app.
-
-> ⚠️ **Warning:** You must have proven ownership of the app to access the Sandbox environment and test IAPs.
-
-> ⚠️ **Warning:** Do not delete the app from the testing device, as this will remove the testing wallet. If the app is deleted, you’ll need to obtain a new wallet address and add it again to the Sandbox.
+To verify the successful setup of your billing integration, we offer a sandbox environment where you can simulate purchases and ensure that your clients can smoothly purchase your products. Documentation on how to use this environment can be found at: [Sandbox](https://docs.connect.aptoide.com/docs/ios-sandbox-environment)
 
 #### Testing In-App Purchases
 
