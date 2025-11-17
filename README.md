@@ -142,7 +142,77 @@ Now that you have the Plugin set-up you can start making use of its functionalit
            break;
    }
    ```
-4. **Handle Indirect Purchases**
+
+4. **Handle Unfinished Purchases on App Launch (CRITICAL)**
+
+   ⚠️ **CRITICAL:** You **MUST** query and consume unfinished purchases every time your application starts. Failing to do so will result in users not receiving items they've already paid for, and purchases will be automatically refunded after 24 hours if not consumed.
+
+   **What are Unfinished Purchases?**
+
+   Unfinished purchases are transactions that have been paid for but not yet consumed by your application. This can happen if:
+   - The app was closed or crashed during a purchase
+   - The user force-quit the app before the purchase was processed
+   - A network error occurred during purchase completion
+
+   **Why This is Critical:**
+   - Users have already paid for these items
+   - If not consumed within 24 hours, purchases are automatically refunded
+   - Users expect to receive their purchased items immediately upon reopening the app
+
+   **Implementation:**
+
+   Add this code to your application's startup logic (e.g., in your main scene's `Start()` or `Awake()` method):
+
+   ```csharp
+   private async void Start()
+   {
+       // Check if AppCoins Billing is available
+       var isAvailable = await AppCoinsSDK.Instance.IsAvailable();
+
+       if (!isAvailable)
+       {
+           return;
+       }
+
+       // Query and consume unfinished purchases
+       var unfinishedPurchasesResult = await AppCoinsSDK.Instance.GetUnfinishedPurchases();
+
+       if (unfinishedPurchasesResult.IsSuccess)
+       {
+           var purchases = unfinishedPurchasesResult.Value;
+
+           foreach (var purchase in purchases)
+           {
+               // Give the item to the user
+               GiveItemToUser(purchase.Sku);
+
+               // Consume the purchase
+               var consumeResult = await AppCoinsSDK.Instance.ConsumePurchase(purchase.Sku);
+
+               if (consumeResult.IsSuccess)
+               {
+                   Debug.Log($"Unfinished purchase consumed successfully: {purchase.Sku}");
+               }
+               else
+               {
+                   Debug.Log($"Error consuming purchase: {consumeResult.Error}");
+               }
+           }
+       }
+       else
+       {
+           Debug.Log("Error querying unfinished purchases: " + unfinishedPurchasesResult.Error);
+       }
+   }
+
+   private void GiveItemToUser(string sku)
+   {
+       // Your logic to grant the purchased item to the user
+       Debug.Log($"Giving item to user: {sku}");
+   }
+   ```
+
+5. **Handle Indirect Purchases**
 
    In addition to standard In-App Purchases, the AppCoins SDK supports **Indirect In-App Purchases**. These are purchases that users do not initiate directly through a Buy action within the application. Common use cases include:
 
@@ -226,7 +296,7 @@ Now that you have the Plugin set-up you can start making use of its functionalit
    }
    ```
 
-5. **Query Purchases**
+6. **Query Purchases**
    You can query the user's purchases by using one of the following methods:
 
    1. `AppCoinsSDK.Instance.GetAllPurchases()`
