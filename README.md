@@ -413,17 +413,6 @@ Where:
 
 To verify the successful setup of your billing integration, we offer a sandbox environment where you can simulate purchases and ensure that your clients can smoothly purchase your products. Documentation on how to use this environment can be found at: [Sandbox](https://docs.connect.aptoide.com/docs/ios-sandbox-environment)
 
-#### Testing In-App Purchases
-
-1. Select the item you wish to purchase in the app.
-2. Choose the **Sandbox** option for the transaction.
-3. Once the purchase is completed, verify the transaction in the Wallet by checking the **Sandbox transactions**.
-4. Ensure the purchased item is correctly received in the app.
-
-If all steps are successful, your billing solution is fully integrated!
-
-For more detailed instructions, refer to [Catappult's documentation](https://docs.catappult.io/docs/ios-sandbox-environment).
-
 ## Classes Definition and Properties
 
 The Unity Plugin integration is based on several main classes of objects that handle its logic:
