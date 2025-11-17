@@ -27,6 +27,7 @@ The billing flow in your application with the Plugin is as follows:
 Now that you have the Plugin set-up you can start making use of its functionalities.
 
 1. **Check AppCoins Billing Availability**  
+   
    The AppCoins Billing will only be available on devices with an iOS version equal to or higher than 17.4 and only if the application was not installed through the Apple App St. Therefore, before attempting any purchase, you should check if the SDK is available by calling `AppCoinsSDK.Instance.IsAvailable()`.
 
    ```csharp
@@ -38,6 +39,7 @@ Now that you have the Plugin set-up you can start making use of its functionalit
    }
    ```
 2. **Query In-App Products**
+   
    You should start by getting the In-App Products you want to make available to the user. This method can either return all of your Catappult In-App Products or a specific list.
 
    1. `AppCoinsSDK.Instance.GetProducts()`
@@ -79,6 +81,7 @@ Now that you have the Plugin set-up you can start making use of its functionalit
    > ⚠️ **Warning:** You will only be able to query your In-App Products once your application is reviewed and approved on Aptoide Connect.
    
 3. **Purchase In-App Product**
+   
    To purchase an In-App Product you must call the function `AppCoinsSDK.Instance.Purchase(sku, payload)`. The Plugin will handle all of the purchase logic for you and it will return you on completion the result of the purchase. This result is an `AppCoinsSDKPurchaseResult` object with the following properties:
 
    1. `State`: String - The purchase state (`AppCoinsSDK.PURCHASE_STATE_SUCCESS`, `AppCoinsSDK.PURCHASE_STATE_PENDING`, `AppCoinsSDK.PURCHASE_STATE_USER_CANCELLED`, `AppCoinsSDK.PURCHASE_STATE_FAILED`)
@@ -297,6 +300,7 @@ Now that you have the Plugin set-up you can start making use of its functionalit
    ```
 
 6. **Query Purchases**
+
    You can query the user's purchases by using one of the following methods:
 
    1. `AppCoinsSDK.Instance.GetAllPurchases()`
