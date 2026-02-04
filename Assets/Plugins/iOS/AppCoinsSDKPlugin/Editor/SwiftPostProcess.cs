@@ -51,6 +51,7 @@ public static class SwiftPostProcess
             AddSDKUrlType(buildPath);
             AddWalletQueriedUrlScheme(buildPath);
             AddCFBundleAllowMixedLocalizations(buildPath);
+            AddMKSellsDigitalGoods(buildPath);
         }
     }
 
@@ -87,6 +88,15 @@ public static class SwiftPostProcess
         PlistDocument plistInfo = new();
         plistInfo.ReadFromFile(plistInfoPath);
         plistInfo.root.SetBoolean("CFBundleAllowMixedLocalizations", true);
+        plistInfo.WriteToFile(plistInfoPath);
+    }
+
+    static void AddMKSellsDigitalGoods(string buildPath)
+    {
+        string plistInfoPath = Path.Combine(buildPath, "Info.plist");
+        PlistDocument plistInfo = new();
+        plistInfo.ReadFromFile(plistInfoPath);
+        plistInfo.root.SetBoolean("MKSellsDigitalGoods", true);
         plistInfo.WriteToFile(plistInfoPath);
     }
 }
