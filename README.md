@@ -1,5 +1,7 @@
 The iOS Billing SDK is a simple solution to implement Aptoide billing. Its Unity Plugin provides a simple interface for Unity games to communicate with the SDK. It consists of a Billing client that allows you to get your products from Aptoide Connect and process the purchase of those items.
 
+The SDK automatically handles transaction reporting to Apple for Core Technology Commission (CTC) calculation, removing this burden from developers. It includes intelligent logic for reporting purchases, refunds, and other transaction events, with region-aware processing that distinguishes which regions require CTC reporting and which do not.
+
 ## In Summary
 
 The billing flow in your application with the Plugin is as follows:
