@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿#if UNITY_EDITOR
+using System.Collections.Generic;
 using UnityEditor;
 using UnityEditor.Callbacks;
 using UnityEditor.iOS.Xcode;
@@ -100,3 +101,4 @@ public static class SwiftPostProcess
         plistInfo.WriteToFile(plistInfoPath);
     }
 }
+#endif
