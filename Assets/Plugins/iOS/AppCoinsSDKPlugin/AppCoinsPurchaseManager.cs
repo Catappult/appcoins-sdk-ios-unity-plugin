@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using System;
+using AppCoins;
 
 // This class must match the name "AppCoinsPurchaseManager"
 public class AppCoinsPurchaseManager : MonoBehaviour
