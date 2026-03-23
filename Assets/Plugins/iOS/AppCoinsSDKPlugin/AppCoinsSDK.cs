@@ -4,6 +4,9 @@ using System.Threading.Tasks;
 using System;
 using System.Collections.Generic;
 
+namespace AppCoins
+{
+
 [Serializable]
 public class AppCoinsSDKError {
     public string Type;
@@ -634,9 +637,11 @@ public class AppCoinsSDK
     {
         if (_isObservingPurchases)
             return; // Prevent multiple registrations
-        
+
         _isObservingPurchases = true;
         _startPurchaseUpdates();
     }
     #endregion
 }
+
+} // namespace AppCoins
