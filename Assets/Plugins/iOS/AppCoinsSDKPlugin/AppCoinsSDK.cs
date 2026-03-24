@@ -188,7 +188,7 @@ public class AppCoinsSDK
 
     public const string PURCHASE_STATE_SUCCESS = "success";
     public const string PURCHASE_STATE_PENDING = "pending";
-    public const string PURCHASE_STATE_USER_CANCELLED = "userCancelled";
+    public const string PURCHASE_STATE_USER_CANCELLED = "user_cancelled";
     public const string PURCHASE_STATE_FAILED = "failed";
 
     public const string PURCHASE_VERIFICATION_STATE_VERIFIED = "verified";
