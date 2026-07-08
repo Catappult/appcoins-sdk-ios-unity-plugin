@@ -36,11 +36,13 @@ namespace AppCoins.Unity
             // By the time Connect() is called the store has been chosen deliberately
             // (Automatic resolved it, or the developer forced Aptoide/Apple), so connect
             // unconditionally — re-checking here would break the explicit modes.
-            Dispatch(() =>
-            {
-                ConnectionState = ConnectionState.Connected;
-                ConnectCallback?.OnStoreConnectionSucceeded();
-            });
+            //
+            // Signal success synchronously. Unity IAP already invokes Connect() on the
+            // main thread, and there is no async work left to await, so there is no reason
+            // to defer via the dispatcher. Firing here completes StoreController.Connect()'s
+            // Task within the same pump, so FetchProducts() is safe immediately after await.
+            ConnectionState = ConnectionState.Connected;
+            ConnectCallback?.OnStoreConnectionSucceeded();
         }
 
         #endregion
