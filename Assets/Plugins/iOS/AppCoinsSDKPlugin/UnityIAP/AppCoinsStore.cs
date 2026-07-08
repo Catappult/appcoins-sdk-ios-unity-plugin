@@ -32,25 +32,14 @@ namespace AppCoins.Unity
             ConnectionState = ConnectionState.Connecting;
             AppCoinsNativeBridge.Initialize();
 
-            RunAsync(async () =>
+            // isAvailable is checked by AppCoinsIAP.ConfigureStoreAsync (Automatic mode).
+            // By the time Connect() is called the store has been chosen deliberately
+            // (Automatic resolved it, or the developer forced Aptoide/Apple), so connect
+            // unconditionally — re-checking here would break the explicit modes.
+            Dispatch(() =>
             {
-                bool available = await AppCoinsNativeBridge.IsAvailable();
-                Dispatch(() =>
-                {
-                    if (available)
-                    {
-                        ConnectionState = ConnectionState.Connected;
-                        ConnectCallback?.OnStoreConnectionSucceeded();
-                    }
-                    else
-                    {
-                        ConnectionState = ConnectionState.Unavailable;
-                        ConnectCallback?.OnStoreConnectionFailed(
-                            new StoreConnectionFailureDescription(
-                                "AppCoins is not available on this device (requires iOS 17.4+ and alternative distribution).",
-                                isRetryable: false));
-                    }
-                });
+                ConnectionState = ConnectionState.Connected;
+                ConnectCallback?.OnStoreConnectionSucceeded();
             });
         }
 
