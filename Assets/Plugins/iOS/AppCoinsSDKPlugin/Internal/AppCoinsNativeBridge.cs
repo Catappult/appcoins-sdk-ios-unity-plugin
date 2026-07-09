@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using UnityEngine;
@@ -186,6 +185,23 @@ namespace AppCoins.Internal
         [DllImport("__Internal")] private static extern void _startPurchaseUpdates();
 #endif
 
+        // JsonUtility.FromJson<T> cannot deserialize generic types: a call like
+        // JsonUtility.FromJson<AppCoinsSDKResult<Product[]>>(json) silently returns a
+        // zeroed instance (IsSuccess = false, Value = null) regardless of the JSON.
+        // Parse into these concrete mirrors instead, then map to the generic result type.
+        [Serializable] private class BoolResult { public bool IsSuccess; public AppCoinsSDKError Error; }
+        [Serializable] private class ProductsResult { public bool IsSuccess; public Product[] Value; public AppCoinsSDKError Error; }
+        [Serializable] private class PurchasesResult { public bool IsSuccess; public Purchase[] Value; public AppCoinsSDKError Error; }
+        [Serializable] private class PurchaseResult { public bool IsSuccess; public Purchase Value; public AppCoinsSDKError Error; }
+
+        private static AppCoinsSDKResult<T> ToFailure<T>(AppCoinsSDKError error, string json)
+        {
+            return AppCoinsSDKResult<T>.Failure(
+                error?.Type ?? "systemError",
+                error?.Message ?? "Failed to parse native response",
+                error?.Description ?? json);
+        }
+
         #region Initialize / deep links
 
         public static void Initialize()
@@ -240,8 +256,8 @@ namespace AppCoins.Internal
         [AOT.MonoPInvokeCallback(typeof(JsonCallback))]
         private static void OnIsAvailable(string json)
         {
-            var result = JsonUtility.FromJson<AppCoinsSDKResult<bool>>(json);
-            _tcsIsAvailable.TrySetResult(result != null && result.IsSuccess);
+            var r = JsonUtility.FromJson<BoolResult>(json);
+            _tcsIsAvailable.TrySetResult(r != null && r.IsSuccess);
         }
 #endif
 
@@ -268,7 +284,12 @@ namespace AppCoins.Internal
         [AOT.MonoPInvokeCallback(typeof(JsonCallback))]
         private static void OnGetProducts(string json)
         {
-            _tcsGetProducts.TrySetResult(JsonUtility.FromJson<AppCoinsSDKResult<Product[]>>(json));
+            Debug.Log($"[AppCoins] OnGetProducts raw JSON: {json}");
+            var r = JsonUtility.FromJson<ProductsResult>(json);
+            _tcsGetProducts.TrySetResult(
+                r != null && r.IsSuccess
+                    ? AppCoinsSDKResult<Product[]>.Success(r.Value)
+                    : ToFailure<Product[]>(r?.Error, json));
         }
 #endif
 
@@ -320,7 +341,11 @@ namespace AppCoins.Internal
         [AOT.MonoPInvokeCallback(typeof(JsonCallback))]
         private static void OnGetAllPurchases(string json)
         {
-            _tcsGetAllPurchases.TrySetResult(JsonUtility.FromJson<AppCoinsSDKResult<Purchase[]>>(json));
+            var r = JsonUtility.FromJson<PurchasesResult>(json);
+            _tcsGetAllPurchases.TrySetResult(
+                r != null && r.IsSuccess
+                    ? AppCoinsSDKResult<Purchase[]>.Success(r.Value)
+                    : ToFailure<Purchase[]>(r?.Error, json));
         }
 #endif
 
@@ -352,14 +377,11 @@ namespace AppCoins.Internal
                 return;
             }
 
-            var dict = MiniJsonAppCoins.Deserialize(json) as Dictionary<string, object>;
-            if (dict == null || !dict.ContainsKey("Value") || dict["Value"] == null)
-            {
-                _tcsGetLatestPurchase.TrySetResult(AppCoinsSDKResult<Purchase>.Success(null));
-                return;
-            }
-
-            _tcsGetLatestPurchase.TrySetResult(JsonUtility.FromJson<AppCoinsSDKResult<Purchase>>(json));
+            var r = JsonUtility.FromJson<PurchaseResult>(json);
+            _tcsGetLatestPurchase.TrySetResult(
+                r != null && r.IsSuccess
+                    ? AppCoinsSDKResult<Purchase>.Success(r.Value) // Value is null when no purchase exists for the sku
+                    : ToFailure<Purchase>(r?.Error, json));
         }
 #endif
 
@@ -385,7 +407,11 @@ namespace AppCoins.Internal
         [AOT.MonoPInvokeCallback(typeof(JsonCallback))]
         private static void OnGetUnfinishedPurchases(string json)
         {
-            _tcsGetUnfinishedPurchases.TrySetResult(JsonUtility.FromJson<AppCoinsSDKResult<Purchase[]>>(json));
+            var r = JsonUtility.FromJson<PurchasesResult>(json);
+            _tcsGetUnfinishedPurchases.TrySetResult(
+                r != null && r.IsSuccess
+                    ? AppCoinsSDKResult<Purchase[]>.Success(r.Value)
+                    : ToFailure<Purchase[]>(r?.Error, json));
         }
 #endif
 
@@ -411,7 +437,11 @@ namespace AppCoins.Internal
         [AOT.MonoPInvokeCallback(typeof(JsonCallback))]
         private static void OnConsumePurchase(string json)
         {
-            _tcsConsumePurchase.TrySetResult(JsonUtility.FromJson<AppCoinsSDKResult<bool>>(json));
+            var r = JsonUtility.FromJson<BoolResult>(json);
+            _tcsConsumePurchase.TrySetResult(
+                r != null && r.IsSuccess
+                    ? AppCoinsSDKResult<bool>.Success(true)
+                    : ToFailure<bool>(r?.Error, json));
         }
 #endif
 

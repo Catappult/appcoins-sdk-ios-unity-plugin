@@ -103,12 +103,6 @@ namespace AppCoins.Unity
 #if UNITY_IOS
         private static void EnsureRuntimeObjects()
         {
-            // Live dispatcher so store callbacks can be marshaled to the main thread.
-            // Called once (guarded by _registered), so we just create it.
-            var dispatcher = new GameObject("AppCoinsMainThreadDispatcher");
-            dispatcher.AddComponent<UnityMainThreadDispatcher>();
-            UnityEngine.Object.DontDestroyOnLoad(dispatcher);
-
             // Creating the manager starts native purchase-update observation and
             // provides the UnitySendMessage("AppCoinsPurchaseManager", ...) target.
             _ = AppCoinsPurchaseManager.Instance;

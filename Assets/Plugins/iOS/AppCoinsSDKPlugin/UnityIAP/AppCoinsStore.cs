@@ -16,9 +16,11 @@ namespace AppCoins.Unity
     /// Unity IAP v5 custom store backed by the AppCoins iOS SDK.
     ///
     /// Each override forwards to the internal native bridge
-    /// (<see cref="AppCoinsNativeBridge"/>) and marshals the result onto the
-    /// Unity main thread before invoking the corresponding base callback. The
-    /// native Swift/Obj-C++ bridge and P/Invoke layer are reused unchanged.
+    /// (<see cref="AppCoinsNativeBridge"/>). Unity IAP invokes the store on the
+    /// main thread, and awaiting the bridge resumes the continuation back on the
+    /// main thread (Unity's UnitySynchronizationContext), so the base callbacks
+    /// are invoked directly. The native Swift/Obj-C++ bridge and P/Invoke layer
+    /// are reused unchanged.
     /// </summary>
     public class AppCoinsStore : Store
     {
@@ -29,6 +31,7 @@ namespace AppCoins.Unity
 
         public override void Connect()
         {
+            Debug.Log("[AppCoins] Connect() called");
             ConnectionState = ConnectionState.Connecting;
             AppCoinsNativeBridge.Initialize();
 
@@ -43,6 +46,7 @@ namespace AppCoins.Unity
             // Task within the same pump, so FetchProducts() is safe immediately after await.
             ConnectionState = ConnectionState.Connected;
             ConnectCallback?.OnStoreConnectionSucceeded();
+            Debug.Log("[AppCoins] Connect() succeeded — ConnectCallback fired");
         }
 
         #endregion
@@ -52,10 +56,13 @@ namespace AppCoins.Unity
         public override void FetchProducts(IReadOnlyCollection<ProductDefinition> products)
         {
             var skus = products.Select(p => p.storeSpecificId).ToArray();
+            Debug.Log($"[AppCoins] FetchProducts() called, {products.Count} product(s): {string.Join(", ", skus)}");
 
             RunAsync(async () =>
             {
                 var result = await AppCoinsNativeBridge.GetProducts(skus);
+                Debug.Log($"[AppCoins] GetProducts result — IsSuccess:{result?.IsSuccess}, Count:{result?.Value?.Length.ToString() ?? "null"}, Error:{result?.Error}");
+                Debug.Log($"[AppCoins] ProductsCallback is {(ProductsCallback == null ? "NULL" : "non-null")}");
                 Dispatch(() =>
                 {
                     if (result != null && result.IsSuccess && result.Value != null)
@@ -358,9 +365,15 @@ namespace AppCoins.Unity
             }
         }
 
+        // Invokes the callback body. Kept as a seam for readability: it runs
+        // synchronously because callers are already on the Unity main thread
+        // (Unity IAP invokes the store there, and awaiting the native bridge
+        // resumes on the main thread via UnitySynchronizationContext). Routing
+        // through a custom main-thread pump is unnecessary and previously dropped
+        // callbacks when that pump was not draining.
         private static void Dispatch(Action action)
         {
-            UnityMainThreadDispatcher.Enqueue(action);
+            action();
         }
 
         private static async void RunAsync(Func<Task> operation)
