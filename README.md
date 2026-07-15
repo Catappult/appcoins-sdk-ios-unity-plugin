@@ -1,76 +1,73 @@
+# AppCoins Unity Plugin — iOS
+
 The iOS Billing SDK is a simple solution to implement Aptoide billing. Its Unity Plugin registers AppCoins as a **Unity IAP v5 custom store**, so your game uses the standard Unity In-App Purchasing API (`StoreController`) and AppCoins backs the purchases on iOS alternative distribution. When the same game ships through the Apple App Store, Unity IAP transparently uses Apple's StoreKit instead — your purchasing code stays identical.
 
-The SDK automatically handles transaction reporting to Apple for Core Technology Commission (CTC) calculation, removing this burden from developers. It includes intelligent logic for reporting purchases, refunds, and other transaction events, with region-aware processing that distinguishes which regions require CTC reporting and which do not.
+The SDK automatically handles transaction reporting to Apple for Core Technology Commission (CTC) calculation, removing this burden from developers.
 
-> **Unity IAP v5 is the supported integration model.** New integrations must use Unity IAP v5 as described below. The previous bespoke `AppCoinsSDK.Instance` async API has been removed from this version; existing integrations that rely on it should remain on the older plugin release. See [Migrating from the legacy AppCoins API](#migrating-from-the-legacy-appcoins-api).
+> **Unity IAP v5 is the only supported integration model.** The previous bespoke `AppCoinsSDK.Instance` async API has been removed. Existing integrations that rely on it should remain on the older plugin release. See [Migrating from the legacy AppCoins API](#migrating-from-the-legacy-appcoins-api).
 
-## In Summary
-
-The billing flow in your application with the Plugin is as follows:
-
-1. Add the AppCoins Unity Plugin and the Unity In-App Purchasing package.
-2. Choose the backing store with a single `AppCoinsIAP.ConfigureStoreAsync(...)` call.
-3. Use the standard Unity IAP API to connect, fetch products, and purchase.
-4. On a pending order, validate the receipt and confirm (consume) the order.
-5. Grant the product to the user.
+---
 
 ## Requirements
 
-1. Unity 2022.3 or later (required by Unity IAP v5).
-2. Unity In-App Purchasing (`com.unity.purchasing`) 5.4.0 or later.
-3. iOS 17.4 or higher.
+- Unity 2022.3 or later
+- Unity In-App Purchasing (`com.unity.purchasing`) **5.4.0 or later**
+- iOS 17.4 or higher (for Aptoide alternative distribution)
 
-## Step-by-Step Guide
+---
 
-### Setup
+## Installation
 
-1. **Add the Unity In-App Purchasing package.** It is already declared in `Packages/manifest.json`:
+### Step 1 — Unity In-App Purchasing
 
-   ```json
-   "com.unity.purchasing": "5.4.0"
-   ```
+Choose the path that matches your current project state:
 
-   Unity will resolve it (and its dependencies) automatically when the project opens.
+#### I don't have Unity IAP yet
 
-2. **Add the AppCoins Unity Plugin.** Add the plugin from the latest release on <https://github.com/Catappult/appcoins-sdk-ios-unity-plugin> to your `Assets` folder. The AppCoins custom store registers itself automatically on iOS at startup — there is no manual registration step.
+1. Open **Window > Package Manager**.
+2. Click the **+** button and select **Add package by name**.
+3. Enter `com.unity.purchasing` and version `5.4.0`, then click **Add**.
 
-### Namespace
+Alternatively, open `Packages/manifest.json` and add the line manually:
 
-The public integration surface lives in the `AppCoins.Unity` namespace:
-
-```csharp
-using AppCoins.Unity;
+```json
+"com.unity.purchasing": "5.4.0"
 ```
 
-Everything else you use comes from Unity IAP's `UnityEngine.Purchasing` namespace.
+Unity will resolve the package (and its dependencies) the next time the project opens.
 
-### Choosing the store (Automatic / Aptoide / Apple)
+#### I have Unity IAP 4.x and need to upgrade
 
-Before using Unity IAP's `StoreController`, call `AppCoinsIAP.ConfigureStoreAsync(mode)` **once**. It selects which store backs purchases and sets it as Unity IAP's default. The mode is up to you:
+Unity IAP v5 changed the API significantly — the `IStoreListener` / `ConfigurationBuilder` / `ProcessPurchase` model was replaced with `StoreController` and async events. Your existing purchasing code will need to be rewritten; this guide covers the v5 API.
 
-- **`AppCoinsStoreMode.Automatic`** *(recommended)* — uses the AppCoins `isAvailable` check to pick Aptoide when the app is running under alternative distribution (iOS 17.4+), and the Apple App Store otherwise.
-- **`AppCoinsStoreMode.Aptoide`** — always use the AppCoins (Aptoide) store.
-- **`AppCoinsStoreMode.Apple`** — always use the built-in Apple App Store.
+To upgrade:
+
+1. Open **Window > Package Manager**.
+2. Find **In App Purchasing** in the **In Project** list.
+3. Click **Update** and select version **5.4.0** (or the latest 5.x).
+4. Resolve any compilation errors — see Unity's [IAP 5 upgrade guide](https://docs.unity3d.com/Packages/com.unity.purchasing@5.4/manual/StoreController.html) for the API changes.
+
+#### I already have Unity IAP 5.4.0 or later
+
+No action needed — proceed to Step 2.
+
+---
+
+### Step 2 — AppCoins Plugin
+
+1. Download the latest `.unitypackage` from the [Releases page](https://github.com/Catappult/appcoins-sdk-ios-unity-plugin/releases).
+2. In Unity, go to **Assets > Import Package > Custom Package**, select the `.unitypackage`, and import all files.
+
+The plugin installs into `Assets/Plugins/iOS/AppCoinsSDKPlugin/`. It registers the AppCoins custom store **automatically** on iOS at startup — there is no manual registration step.
+
+---
+
+## Quick Start
+
+The complete flow, from store selection to purchase confirmation:
 
 ```csharp
-using AppCoins.Unity;
-using UnityEngine.Purchasing;
-
-// Automatic: isAvailable decides between Aptoide and Apple.
-string store = await AppCoinsIAP.ConfigureStoreAsync(AppCoinsStoreMode.Automatic);
-
-// ...or force one of the two:
-// await AppCoinsIAP.ConfigureStoreAsync(AppCoinsStoreMode.Aptoide);
-// await AppCoinsIAP.ConfigureStoreAsync(AppCoinsStoreMode.Apple);
-```
-
-On non-iOS platforms this call is a no-op that leaves Unity's normal platform default in place, so nothing is disturbed.
-
-### Implementation
-
-From here on it is standard Unity IAP v5. Create a `StoreController`, subscribe to its events, and connect.
-
-```csharp
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Purchasing;
@@ -78,130 +75,223 @@ using AppCoins.Unity;
 
 public class Shop : MonoBehaviour
 {
-    private static readonly string[] Skus = { "gas", "coins_100" };
     private StoreController _controller;
+    private Product _gasProduct;
 
     private async void Start()
     {
+        // 1. Choose the store. Automatic picks Aptoide when running under
+        //    alternative distribution, Apple App Store otherwise.
         await AppCoinsIAP.ConfigureStoreAsync(AppCoinsStoreMode.Automatic);
 
+        // 2. Get the StoreController and subscribe to events.
         _controller = UnityIAPServices.StoreController();
-        _controller.OnStoreConnected    += OnConnected;
         _controller.OnProductsFetched   += OnProductsFetched;
+        _controller.OnPurchasesFetched  += OnPurchasesFetched;
         _controller.OnPurchasePending   += OnPurchasePending;
-        _controller.OnPurchaseConfirmed += order => Debug.Log("Confirmed: " + order.Info.TransactionID);
-        _controller.OnPurchaseFailed    += f => Debug.Log($"Failed: {f.FailureReason} - {f.Details}");
-        _controller.OnPurchaseDeferred  += _ => Debug.Log("Payment pending.");
+        _controller.OnPurchaseFailed    += order => Debug.LogWarning($"Purchase failed: {order.FailureReason}");
+        _controller.OnPurchaseConfirmed += order => Debug.Log("Purchase confirmed: " + order.Info.TransactionID);
+        _controller.OnStoreDisconnected += desc  => Debug.LogWarning("Store disconnected: " + desc.message);
 
-        await _controller.Connect();
+        // 3. Connect to the store.
+        try
+        {
+            await _controller.Connect();
+        }
+        catch (Exception e)
+        {
+            Debug.LogError("Store connection failed: " + e.Message);
+            return;
+        }
+
+        // 4. Declare the products you sell.
+        _controller.FetchProducts(new List<ProductDefinition>
+        {
+            new ProductDefinition("gas",      ProductType.Consumable),
+            new ProductDefinition("coins_100", ProductType.Consumable),
+        });
     }
 
-    private void OnConnected()
-    {
-        var defs = new List<ProductDefinition>();
-        foreach (var sku in Skus)
-            defs.Add(new ProductDefinition(sku, ProductType.Consumable));
-
-        _controller.FetchProducts(defs);
-        _controller.FetchPurchases(); // recover unfinished purchases on launch
-    }
-
+    // Called once the product catalog has been fetched.
     private void OnProductsFetched(List<Product> products)
     {
         foreach (var p in products)
+        {
             Debug.Log($"{p.definition.id}: {p.metadata.localizedTitle} @ {p.metadata.localizedPriceString}");
+            if (p.definition.id == "gas")
+                _gasProduct = p;
+        }
+
+        // Recover any purchases that were paid but not yet consumed
+        // (e.g. the app crashed before ConfirmPurchase was called).
+        _controller.FetchPurchases();
     }
 
-    public void Buy(string sku)
+    // Called with purchases recovered from a previous session.
+    private void OnPurchasesFetched(Orders orders)
     {
-        var product = _controller.GetProductById(sku);
-        if (product != null) _controller.PurchaseProduct(product);
+        foreach (var pending in orders.PendingOrders)
+            ProcessPendingOrder(pending);
     }
 
+    // Triggers a purchase when the player taps "Buy Gas".
+    public void BuyGas()
+    {
+        if (_gasProduct != null)
+            _controller.PurchaseProduct(_gasProduct);
+    }
+
+    // Called when a purchase is authorized and waiting for your app to grant
+    // the item and confirm (consume) the order.
     private void OnPurchasePending(PendingOrder order)
     {
-        // order.Info.Receipt carries the AppCoins signature verification.
-        GrantItem(order);
-        _controller.ConfirmPurchase(order); // consume
+        ProcessPendingOrder(order);
     }
 
-    private void GrantItem(Order order)
+    private void ProcessPendingOrder(PendingOrder order)
     {
-        foreach (var item in order.CartOrdered.Items())
-            Debug.Log("Granting " + item.Product.definition.id);
+        string productId = order.CartOrdered.Items().FirstOrDefault()?.Product.definition.id;
+
+        // Grant the item to the player.
+        if (productId == "gas") AddGas();
+
+        // Confirm (consume) the order so the consumable can be bought again.
+        _controller.ConfirmPurchase(order);
     }
+
+    private void AddGas() { /* your game logic */ }
 }
 ```
 
-A complete, runnable version of this flow is provided in the sample at
-`Assets/Plugins/iOS/AppCoinsSDKPlugin/Samples/TrivialDriveIAP.cs`.
+A complete, runnable sample is available at `Assets/Plugins/iOS/AppCoinsSDKPlugin/Samples/TrivialDriveIAP.cs`.
 
-#### How AppCoins maps onto Unity IAP
+---
+
+## Choosing the Store
+
+Call `AppCoinsIAP.ConfigureStoreAsync(mode)` **once**, before `StoreController.Connect()`. It sets which store backs purchases for the entire session.
+
+| Mode | Behaviour |
+|---|---|
+| `AppCoinsStoreMode.Automatic` *(recommended)* | Calls AppCoins `isAvailable`: picks **Aptoide** under alternative distribution, **Apple** otherwise. |
+| `AppCoinsStoreMode.Aptoide` | Always routes through the AppCoins store. |
+| `AppCoinsStoreMode.Apple` | Always routes through Apple's built-in StoreKit. |
+
+On non-iOS platforms (Android, Editor) this call is a no-op.
+
+---
+
+## Handling Unfinished Purchases on Launch
+
+⚠️ **This step is mandatory.** If your app is closed after payment is collected but before `ConfirmPurchase` is called, the purchase is left unfinished. The AppCoins SDK will automatically refund unfinished purchases after 24 hours.
+
+Always call `FetchPurchases()` after connecting and process every item in `orders.PendingOrders` exactly as you would a live purchase. The example above shows this pattern in `OnProductsFetched`.
+
+---
+
+## Server-Side Receipt Verification
+
+On `OnPurchasePending`, `order.Info.Receipt` contains a JSON receipt:
+
+```json
+{
+  "Store":         "AppCoinsAppStore",
+  "TransactionID": "<orderUID>",
+  "Payload":       "<JSON string>"
+}
+```
+
+The `Payload` is itself a JSON string that carries the AppCoins purchase record and its signature verification:
+
+```json
+{
+  "uid":                "...",
+  "sku":                "gas",
+  "state":              "ACKNOWLEDGED",
+  "orderUid":           "...",
+  "verificationResult": "verified",
+  "verification": {
+    "type":      "GOOGLE",
+    "signature": "...",
+    "data": {
+      "packageName":    "com.example.game",
+      "productId":      "gas",
+      "purchaseToken":  "...",
+      "purchaseTime":   1234567890
+    }
+  }
+}
+```
+
+Forward the `Payload` (or the entire `Receipt`) to your backend, which can verify the signature against the AppCoins Remote Check API, or use the `purchaseToken` to call the Catappult validation endpoint directly.
+
+If you do not yet have a backend, you can confirm purchases client-side during development, but **always add server-side validation before shipping to production**.
+
+---
+
+## Testing
+
+### Enabling the Aptoide store in Xcode
+
+To test the AppCoins store on a development build, you need to simulate alternative distribution. In Xcode:
+
+1. In your target's **Build Settings**, search for **Marketplaces**.
+2. Under **Deployment**, set **Marketplaces** (or **Alternative Distribution - Marketplaces**) to `com.aptoide.ios.store`.
+3. Open your **scheme** → **Run** → **Options** tab → set **Distribution** to `com.aptoide.ios.store`.
+
+For more detail see [Apple's documentation](https://developer.apple.com/documentation/appdistribution/distributing-your-app-on-an-alternative-marketplace#Test-your-app-during-development).
+
+### Toggling between Aptoide and Apple in one build
+
+The SDK provides a deep-link to flip `isAvailable` at runtime, which lets you test both billing systems in a single build when using `AppCoinsStoreMode.Automatic`. Open your device's browser and navigate to:
+
+```
+{bundleId}.iap://wallet.appcoins.io/default?value={true|false}
+```
+
+- Replace `{bundleId}` with your app's Bundle ID (e.g. `com.example.game`).
+- `value=true` — enables the AppCoins store.
+- `value=false` — disables it, so `Automatic` falls back to Apple.
+
+### Sandbox environment
+
+To simulate purchases without real payments, use the AppCoins sandbox. See [Sandbox documentation](https://docs.connect.aptoide.com/docs/ios-sandbox-environment).
+
+---
+
+## API Reference
+
+### How AppCoins maps onto Unity IAP
 
 | Unity IAP v5 | AppCoins behaviour |
 |---|---|
-| `StoreController.Connect()` | `AppcSDK.initialize` + `isAvailable`; failure maps to a Unity store-connection failure. |
-| `FetchProducts(...)` | Maps AppCoins `Product` to Unity `Product` (price value/label/currency/symbol, title, description). |
-| `PurchaseProduct(...)` | `Product.purchase`. Success → `OnPurchasePending`; pending → `OnPurchaseDeferred`; user-cancel/failure → `OnPurchaseFailed`. |
-| `ConfirmPurchase(pendingOrder)` | `Purchase.finish` (consume) → `OnPurchaseConfirmed`. |
-| `FetchPurchases()` | Backed by `Purchase.unfinished` + `Purchase.all` (unfinished-purchase recovery). |
-| `CheckEntitlement(product)` | Backed by `Purchase.latest`. |
-| Deep-link / indirect purchase intents (`Purchase.updates`) | Surfaced through the standard `OnPurchasePending` flow. |
+| `ConfigureStoreAsync(Automatic)` | Calls `isAvailable` to pick the right store. |
+| `StoreController.Connect()` | Initialises the AppCoins SDK. |
+| `FetchProducts(defs)` | Fetches prices and metadata; maps AppCoins `Product` to Unity `Product`. |
+| `PurchaseProduct(product)` | Triggers the AppCoins purchase sheet. |
+| `OnPurchasePending` | Purchase authorized — grant the item and call `ConfirmPurchase`. |
+| `OnPurchaseDeferred` | Payment authorized but not yet settled (e.g. parental approval). |
+| `OnPurchaseFailed` | Purchase cancelled or failed — reason and details included. |
+| `ConfirmPurchase(order)` | Consumes the purchase so it can be bought again. |
+| `FetchPurchases()` | Returns unfinished purchases for startup recovery. |
+| `CheckEntitlement(product)` | Checks whether the user has an unconsumed purchase for the product. |
+| Deep-link / indirect purchase intents | Surfaced automatically through `OnPurchasePending`. |
 
-#### Receipt / server-side verification
+---
 
-On a pending order, `order.Info.Receipt` is a JSON "unified receipt" with the shape `{ "Store", "TransactionID", "Payload" }`. The `Payload` is a JSON string carrying the AppCoins purchase and its signature verification (`type`, `signature`, `data`, `verificationResult`). Forward the `Payload` to your backend to validate the signature through Remote Check.
+## Migrating from the Legacy AppCoins API
 
-### Handling unfinished purchases on launch (CRITICAL)
-
-⚠️ **CRITICAL:** You **MUST** recover unfinished purchases every time your application starts. Failing to do so will result in users not receiving items they've already paid for, and purchases will be automatically refunded after 24 hours if not consumed.
-
-Call `_controller.FetchPurchases()` after connecting. Any purchase that was paid for but not consumed is delivered as a `PendingOrder`; grant the item and call `ConfirmPurchase(order)` to consume it. This is shown in the sample above.
-
-### Testing
-
-To test the SDK integration during development, you'll need to set the installation source for development builds, simulating that the app is being distributed through Aptoide. This action enables the SDK's `isAvailable` method (and therefore the Aptoide store in `Automatic` mode). Follow these steps in Xcode:
-
-1. In your target build settings, search for "Marketplaces".
-2. Under "Deployment", set the key "Marketplaces" or "Alternative Distribution - Marketplaces" to "com.aptoide.ios.store".
-3. In your scheme, go to the "Run" tab, then the "Options" tab. In the "Distribution" dropdown, select "com.aptoide.ios.store".
-
-   For more information, please refer to Apple's official documentation: <https://developer.apple.com/documentation/appdistribution/distributing-your-app-on-an-alternative-marketplace#Test-your-app-during-development>
-
-### Testing both billing systems in one build
-
-To test both **Apple Billing** and **Aptoide Billing** within a single build, the **AppCoins SDK** includes a deep link mechanism that toggles the SDK's `isAvailable` method between `true` and `false`. With `AppCoinsStoreMode.Automatic`, this lets you switch between the AppCoins store (when available) and Apple Billing (when unavailable).
-
-Open your device's browser and enter:
-
-```
-{domain}.iap://wallet.appcoins.io/default?value={value}
-```
-
-Where:
-
-- `domain` – The Bundle ID of your application.
-- `value`
-  - `true` → Enables the AppCoins SDK for testing.
-  - `false` → Disables the AppCoins SDK, allowing Apple Billing to be tested instead.
-
-### Sandbox
-
-To verify the successful setup of your billing integration, we offer a sandbox environment where you can simulate purchases. Documentation on how to use this environment can be found at: [Sandbox](https://docs.connect.aptoide.com/docs/ios-sandbox-environment)
-
-## Migrating from the legacy AppCoins API
-
-Previous versions exposed a bespoke `AppCoins.AppCoinsSDK.Instance` async/await singleton (plus `AppCoinsPurchaseManager`). That public API has been **removed** in favour of Unity IAP v5. The underlying native Swift/Obj-C++ bridge is unchanged — only the C# surface changed.
+Previous versions exposed a bespoke `AppCoins.AppCoinsSDK.Instance` async/await singleton (plus `AppCoinsPurchaseManager`). That public API has been **removed** in favour of Unity IAP v5.
 
 | Legacy API | Unity IAP v5 equivalent |
 |---|---|
-| `AppCoinsSDK.Instance.IsAvailable()` | `AppCoinsIAP.ConfigureStoreAsync(AppCoinsStoreMode.Automatic)` + `StoreController.Connect()` |
+| `AppCoinsSDK.Instance.IsAvailable()` | `AppCoinsIAP.ConfigureStoreAsync(AppCoinsStoreMode.Automatic)` |
 | `AppCoinsSDK.Instance.GetProducts(skus)` | `StoreController.FetchProducts(defs)` → `OnProductsFetched` |
 | `AppCoinsSDK.Instance.Purchase(sku, payload)` | `StoreController.PurchaseProduct(product)` → `OnPurchasePending` |
-| `AppCoinsSDK.Instance.ConsumePurchase(sku)` | `StoreController.ConfirmPurchase(pendingOrder)` → `OnPurchaseConfirmed` |
+| `AppCoinsSDK.Instance.ConsumePurchase(sku)` | `StoreController.ConfirmPurchase(order)` → `OnPurchaseConfirmed` |
 | `AppCoinsSDK.Instance.GetAllPurchases()` / `GetUnfinishedPurchases()` | `StoreController.FetchPurchases()` → `OnPurchasesFetched` |
 | `AppCoinsSDK.Instance.GetLatestPurchase(sku)` | `StoreController.CheckEntitlement(product)` → `OnCheckEntitlement` |
-| `AppCoinsPurchaseManager.OnPurchaseUpdated` (purchase intents) | `StoreController.OnPurchasePending` (intents are surfaced automatically) |
-| Purchase verification signature | `order.Info.Receipt` → `Payload` → `verification.signature` |
+| `AppCoinsPurchaseManager.OnPurchaseUpdated` | `StoreController.OnPurchasePending` (intents surfaced automatically) |
+| Purchase verification signature | `order.Info.Receipt` → parse `Payload` → `verification.signature` |
 
-If you must keep the legacy async API, stay on the previous plugin release; the two models are not intended to be mixed in a single build.
+If you must keep the legacy async API, stay on the previous plugin release. The two models cannot be mixed in a single build.
