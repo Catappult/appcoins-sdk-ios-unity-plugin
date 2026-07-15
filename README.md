@@ -27,7 +27,7 @@ AppCoins is now active alongside your existing Unity IAP integration.
 
 ---
 
-## No Unity IAP 5 integration yet?
+## Setting up Unity IAP 5 from scratch
 
 The Unity IAP v5 store flow has four stages: connect, fetch products, purchase, and confirm. The [official Unity IAP documentation](https://docs.unity3d.com/Packages/com.unity.purchasing@5.4/manual/index.html) covers the package in depth. Below is a complete working integration with AppCoins included.
 
