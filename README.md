@@ -154,7 +154,7 @@ A fully runnable version of this flow is available at `Assets/Plugins/iOS/AppCoi
 
 On `OnPurchasePending`, `order.Info.Receipt` is a JSON receipt with the shape `{ "Store", "TransactionID", "Payload" }`. The `Payload` carries the AppCoins purchase record and its signature, which your backend can use to verify the transaction before granting items.
 
-Client-side confirmation is acceptable during development, but **server-side validation is required before shipping to production**.
+Client-side confirmation is fine for most use cases. For high-value items, server-side validation is strongly recommended to prevent fraudulent purchases.
 
 ---
 
