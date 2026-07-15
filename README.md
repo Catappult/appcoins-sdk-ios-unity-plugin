@@ -16,15 +16,9 @@ The SDK automatically handles transaction reporting to Apple for Core Technology
 
 ## Installation
 
-**1. Add Unity In-App Purchasing.**
-Open **Window > Package Manager**, click **+**, select **Add package by name**, and enter:
+Download the latest `.unitypackage` from the [Releases page](https://github.com/Catappult/appcoins-sdk-ios-unity-plugin/releases) and import it via **Assets > Import Package > Custom Package**. The plugin registers itself automatically on iOS — no extra setup required.
 
-```
-com.unity.purchasing   5.4.0
-```
-
-**2. Add the AppCoins Plugin.**
-Download the latest `.unitypackage` from the [Releases page](https://github.com/Catappult/appcoins-sdk-ios-unity-plugin/releases), then import it via **Assets > Import Package > Custom Package**. The plugin registers itself automatically on iOS — no extra setup required.
+> **Don't have Unity IAP 5.4 yet?** Open **Window > Package Manager**, click **+**, select **Add package by name**, and enter `com.unity.purchasing` version `5.4.0`. If you are on Unity IAP 4.x or not using Unity IAP at all, see [Not on Unity IAP 5 yet?](#not-on-unity-iap-5-yet).
 
 ---
 
