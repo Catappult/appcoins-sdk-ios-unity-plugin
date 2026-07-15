@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using UnityEngine;
@@ -286,10 +287,14 @@ namespace AppCoins.Internal
         {
             Debug.Log($"[AppCoins] OnGetProducts raw JSON: {json}");
             var r = JsonUtility.FromJson<ProductsResult>(json);
-            _tcsGetProducts.TrySetResult(
-                r != null && r.IsSuccess
-                    ? AppCoinsSDKResult<Product[]>.Success(r.Value)
-                    : ToFailure<Product[]>(r?.Error, json));
+            if (r == null || !r.IsSuccess)
+            {
+                _tcsGetProducts.TrySetResult(ToFailure<Product[]>(r?.Error, json));
+                return;
+            }
+            // JsonUtility parses IsSuccess correctly but silently returns null for Product[]
+            // in IL2CPP builds (AOT limitation for arrays of complex types). Use MiniJson instead.
+            _tcsGetProducts.TrySetResult(AppCoinsSDKResult<Product[]>.Success(ParseProductArray(json)));
         }
 #endif
 
@@ -342,10 +347,12 @@ namespace AppCoins.Internal
         private static void OnGetAllPurchases(string json)
         {
             var r = JsonUtility.FromJson<PurchasesResult>(json);
-            _tcsGetAllPurchases.TrySetResult(
-                r != null && r.IsSuccess
-                    ? AppCoinsSDKResult<Purchase[]>.Success(r.Value)
-                    : ToFailure<Purchase[]>(r?.Error, json));
+            if (r == null || !r.IsSuccess)
+            {
+                _tcsGetAllPurchases.TrySetResult(ToFailure<Purchase[]>(r?.Error, json));
+                return;
+            }
+            _tcsGetAllPurchases.TrySetResult(AppCoinsSDKResult<Purchase[]>.Success(ParsePurchaseArray(json)));
         }
 #endif
 
@@ -408,10 +415,12 @@ namespace AppCoins.Internal
         private static void OnGetUnfinishedPurchases(string json)
         {
             var r = JsonUtility.FromJson<PurchasesResult>(json);
-            _tcsGetUnfinishedPurchases.TrySetResult(
-                r != null && r.IsSuccess
-                    ? AppCoinsSDKResult<Purchase[]>.Success(r.Value)
-                    : ToFailure<Purchase[]>(r?.Error, json));
+            if (r == null || !r.IsSuccess)
+            {
+                _tcsGetUnfinishedPurchases.TrySetResult(ToFailure<Purchase[]>(r?.Error, json));
+                return;
+            }
+            _tcsGetUnfinishedPurchases.TrySetResult(AppCoinsSDKResult<Purchase[]>.Success(ParsePurchaseArray(json)));
         }
 #endif
 
@@ -477,6 +486,93 @@ namespace AppCoins.Internal
             _rejectPurchaseIntent();
 #endif
         }
+
+        #endregion
+
+        #region MiniJson array helpers
+
+        // JsonUtility silently returns null for arrays of complex types in IL2CPP builds.
+        // These helpers use MiniJsonAppCoins to parse those arrays reliably on device.
+
+        private static Product[] ParseProductArray(string json)
+        {
+            var root = MiniJsonAppCoins.Deserialize(json) as Dictionary<string, object>;
+            if (root == null || !root.TryGetValue("Value", out var raw) || !(raw is List<object> list))
+                return new Product[0];
+
+            var products = new Product[list.Count];
+            for (int i = 0; i < list.Count; i++)
+            {
+                if (!(list[i] is Dictionary<string, object> p)) continue;
+                products[i] = new Product
+                {
+                    Sku           = GetStr(p, "Sku"),
+                    Title         = GetStr(p, "Title"),
+                    Description   = GetStr(p, "Description"),
+                    PriceCurrency = GetStr(p, "PriceCurrency"),
+                    PriceValue    = GetStr(p, "PriceValue"),
+                    PriceLabel    = GetStr(p, "PriceLabel"),
+                    PriceSymbol   = GetStr(p, "PriceSymbol"),
+                };
+            }
+            return products;
+        }
+
+        private static Purchase[] ParsePurchaseArray(string json)
+        {
+            var root = MiniJsonAppCoins.Deserialize(json) as Dictionary<string, object>;
+            if (root == null || !root.TryGetValue("Value", out var raw) || !(raw is List<object> list))
+                return new Purchase[0];
+
+            var purchases = new Purchase[list.Count];
+            for (int i = 0; i < list.Count; i++)
+            {
+                if (!(list[i] is Dictionary<string, object> p)) continue;
+                purchases[i] = ParsePurchase(p);
+            }
+            return purchases;
+        }
+
+        private static Purchase ParsePurchase(Dictionary<string, object> p)
+        {
+            if (p == null) return null;
+            var purchase = new Purchase
+            {
+                UID      = GetStr(p, "UID"),
+                Sku      = GetStr(p, "Sku"),
+                State    = GetStr(p, "State"),
+                OrderUID = GetStr(p, "OrderUID"),
+                Payload  = GetStr(p, "Payload"),
+                Created  = GetStr(p, "Created"),
+            };
+
+            if (p.TryGetValue("Verification", out var vv) && vv is Dictionary<string, object> vd)
+            {
+                var verif = new Purchase.PurchaseVerification
+                {
+                    Type      = GetStr(vd, "Type"),
+                    Signature = GetStr(vd, "Signature"),
+                };
+                if (vd.TryGetValue("Data", out var dd) && dd is Dictionary<string, object> dataDict)
+                {
+                    verif.Data = new Purchase.PurchaseVerificationData
+                    {
+                        OrderId          = GetStr(dataDict, "OrderId"),
+                        PackageName      = GetStr(dataDict, "PackageName"),
+                        ProductId        = GetStr(dataDict, "ProductId"),
+                        PurchaseTime     = dataDict.TryGetValue("PurchaseTime",  out var pt) && pt != null ? Convert.ToInt64(pt)  : 0L,
+                        PurchaseToken    = GetStr(dataDict, "PurchaseToken"),
+                        PurchaseState    = dataDict.TryGetValue("PurchaseState", out var ps) && ps != null ? Convert.ToInt32(ps) : 0,
+                        DeveloperPayload = GetStr(dataDict, "DeveloperPayload"),
+                    };
+                }
+                purchase.Verification = verif;
+            }
+            return purchase;
+        }
+
+        private static string GetStr(Dictionary<string, object> d, string key)
+            => d.TryGetValue(key, out var v) ? v as string : null;
 
         #endregion
 
