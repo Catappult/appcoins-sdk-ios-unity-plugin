@@ -23,7 +23,7 @@ await AppCoinsIAP.ConfigureStoreAsync(AppCoinsStoreMode.Automatic);
 
 AppCoins is now active alongside your existing Unity IAP integration.
 
-`Automatic` uses the AppCoins `isAvailable` check at runtime to pick Aptoide under alternative distribution, or StoreKit otherwise. Pass `AppCoinsStoreMode.Aptoide` or `AppCoinsStoreMode.Apple` to force a specific store.
+Use `Automatic` if you are distributing the same build on both Aptoide and the Apple App Store — it calls `isAvailable` at runtime and picks the right store automatically. Use `AppCoinsStoreMode.Aptoide` if the build is exclusively for Aptoide, or `AppCoinsStoreMode.Apple` if it is exclusively for the Apple App Store.
 
 ---
 
