@@ -1,10 +1,8 @@
 # AppCoins Unity Plugin — iOS
 
-**Unity In-App Purchasing (Unity IAP)** is the industry-standard way to sell items in Unity games. It provides a single, unified API that works across every platform — iOS, Android, and others — so you write your purchasing code once and it runs everywhere. Under the hood, Unity IAP talks to each platform's native billing system (StoreKit on iOS, Google Play Billing on Android, and so on) so you don't have to.
+The AppCoins Unity Plugin lets you sell in-app products through Aptoide, the leading iOS alternative marketplace. It registers AppCoins as a custom store inside **Unity In-App Purchasing (Unity IAP)**, so your game uses the same standard purchasing API regardless of where it is distributed. On Aptoide, purchases go through AppCoins. On the Apple App Store, Unity IAP falls back to StoreKit. Your code is the same in both cases, and the plugin takes care of Apple's Core Technology Commission (CTC) reporting for you.
 
-The AppCoins Unity Plugin plugs into this system as a **custom store**. When your game runs on Aptoide alternative distribution, purchases are routed through AppCoins automatically. When it runs through the Apple App Store, Unity IAP uses StoreKit as usual. **Your code never changes between the two.**
-
-If you already have Unity IAP 5 running in your project, adding AppCoins takes **one line of code**.
+Unity IAP is how most Unity games handle purchases today. It gives you a single API that works on iOS, Android, and other platforms, so you write the purchasing code once and it runs everywhere. If you already have Unity IAP 5 set up in your project, adding AppCoins takes **one line of code**.
 
 ---
 
