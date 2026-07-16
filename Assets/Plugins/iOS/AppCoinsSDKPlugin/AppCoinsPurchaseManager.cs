@@ -1,30 +1,33 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
 using System;
-using AppCoins;
+using UnityEngine;
+using AppCoins.Internal;
 
-// This class must match the name "AppCoinsPurchaseManager"
-public class AppCoinsPurchaseManager : MonoBehaviour
+// Internal runtime receiver for AppCoins purchase-intent updates.
+//
+// The native layer (UnityPlugin.swift) delivers indirect / deep-link purchase
+// intents by calling UnitySendMessage("AppCoinsPurchaseManager",
+// "OnPurchaseUpdatedInternal", json). Unity resolves that by GameObject NAME,
+// so this component must live on a GameObject named exactly
+// "AppCoinsPurchaseManager" and expose a public OnPurchaseUpdatedInternal(string)
+// method. Both are kept for that native contract.
+//
+// This is no longer a public API surface: intents are routed to the Unity IAP
+// store adapter (see AppCoins.Unity.AppCoinsIAP) and surfaced to developers as
+// the standard Unity IAP OnPurchasePending event.
+internal class AppCoinsPurchaseManager : MonoBehaviour
 {
     private static AppCoinsPurchaseManager _instance;
 
-    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
-    static void InitOnLoad()
-    {
-        _ = Instance; // Ensures the singleton is created at app startup
-    }
+    // Consumed internally by the Unity IAP store adapter.
+    internal static event Action<PurchaseIntent> OnPurchaseIntent;
 
-    // Subscribe to get notified of indirect IAP
-    public static event Action<PurchaseIntent> OnPurchaseUpdated;
-
-    public static AppCoinsPurchaseManager Instance
+    internal static AppCoinsPurchaseManager Instance
     {
         get
         {
             if (_instance == null)
             {
-                GameObject obj = new GameObject("AppCoinsPurchaseManager");
+                var obj = new GameObject("AppCoinsPurchaseManager");
                 _instance = obj.AddComponent<AppCoinsPurchaseManager>();
                 DontDestroyOnLoad(obj);
             }
@@ -32,7 +35,7 @@ public class AppCoinsPurchaseManager : MonoBehaviour
         }
     }
 
-    void Awake()
+    private void Awake()
     {
         if (_instance != null && _instance != this)
         {
@@ -42,18 +45,13 @@ public class AppCoinsPurchaseManager : MonoBehaviour
         _instance = this;
         DontDestroyOnLoad(gameObject);
 
-        AppCoinsSDK.StartObservingPurchases();
+        AppCoinsNativeBridge.StartObservingPurchases();
     }
 
-    // This method name must match "OnPurchaseUpdatedInternal" from Swift
+    // Invoked by the native layer via UnitySendMessage. Name must not change.
     public void OnPurchaseUpdatedInternal(string purchaseIntentJson)
     {
-        PurchaseIntent purchaseIntent = JsonUtility.FromJson<PurchaseIntent>(purchaseIntentJson);
-        NotifyPurchase(purchaseIntent);
-    }
-
-    public static void NotifyPurchase(PurchaseIntent purchaseIntent)
-    {
-        OnPurchaseUpdated?.Invoke(purchaseIntent);
+        var intent = JsonUtility.FromJson<PurchaseIntent>(purchaseIntentJson);
+        OnPurchaseIntent?.Invoke(intent);
     }
 }
