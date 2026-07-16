@@ -285,7 +285,6 @@ namespace AppCoins.Internal
         [AOT.MonoPInvokeCallback(typeof(JsonCallback))]
         private static void OnGetProducts(string json)
         {
-            Debug.Log($"[AppCoins] OnGetProducts raw JSON: {json}");
             var r = JsonUtility.FromJson<ProductsResult>(json);
             if (r == null || !r.IsSuccess)
             {
@@ -500,11 +499,11 @@ namespace AppCoins.Internal
             if (root == null || !root.TryGetValue("Value", out var raw) || !(raw is List<object> list))
                 return new Product[0];
 
-            var products = new Product[list.Count];
-            for (int i = 0; i < list.Count; i++)
+            var products = new List<Product>(list.Count);
+            foreach (var item in list)
             {
-                if (!(list[i] is Dictionary<string, object> p)) continue;
-                products[i] = new Product
+                if (!(item is Dictionary<string, object> p)) continue;
+                products.Add(new Product
                 {
                     Sku           = GetStr(p, "Sku"),
                     Title         = GetStr(p, "Title"),
@@ -513,9 +512,9 @@ namespace AppCoins.Internal
                     PriceValue    = GetStr(p, "PriceValue"),
                     PriceLabel    = GetStr(p, "PriceLabel"),
                     PriceSymbol   = GetStr(p, "PriceSymbol"),
-                };
+                });
             }
-            return products;
+            return products.ToArray();
         }
 
         private static Purchase[] ParsePurchaseArray(string json)
@@ -524,13 +523,13 @@ namespace AppCoins.Internal
             if (root == null || !root.TryGetValue("Value", out var raw) || !(raw is List<object> list))
                 return new Purchase[0];
 
-            var purchases = new Purchase[list.Count];
-            for (int i = 0; i < list.Count; i++)
+            var purchases = new List<Purchase>(list.Count);
+            foreach (var item in list)
             {
-                if (!(list[i] is Dictionary<string, object> p)) continue;
-                purchases[i] = ParsePurchase(p);
+                if (!(item is Dictionary<string, object> p)) continue;
+                purchases.Add(ParsePurchase(p));
             }
-            return purchases;
+            return purchases.ToArray();
         }
 
         private static Purchase ParsePurchase(Dictionary<string, object> p)

@@ -73,7 +73,7 @@ public class Shop : MonoBehaviour
         _controller.OnPurchasesFetched  += OnPurchasesFetched;
         _controller.OnPurchasePending   += OnPurchasePending;
         _controller.OnPurchaseFailed    += order => Debug.LogWarning("Purchase failed: " + order.FailureReason);
-        _controller.OnStoreDisconnected += desc  => Debug.LogWarning("Store disconnected: " + desc.message);
+        _controller.OnStoreDisconnected += desc  => Debug.LogWarning("Store disconnected: " + desc.Message);
 
         try
         {

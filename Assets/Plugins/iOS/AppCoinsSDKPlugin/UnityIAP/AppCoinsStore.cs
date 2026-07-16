@@ -31,7 +31,6 @@ namespace AppCoins.Unity
 
         public override void Connect()
         {
-            Debug.Log("[AppCoins] Connect() called");
             ConnectionState = ConnectionState.Connecting;
             AppCoinsNativeBridge.Initialize();
 
@@ -46,7 +45,6 @@ namespace AppCoins.Unity
             // Task within the same pump, so FetchProducts() is safe immediately after await.
             ConnectionState = ConnectionState.Connected;
             ConnectCallback?.OnStoreConnectionSucceeded();
-            Debug.Log("[AppCoins] Connect() succeeded — ConnectCallback fired");
         }
 
         #endregion
@@ -56,13 +54,10 @@ namespace AppCoins.Unity
         public override void FetchProducts(IReadOnlyCollection<ProductDefinition> products)
         {
             var skus = products.Select(p => p.storeSpecificId).ToArray();
-            Debug.Log($"[AppCoins] FetchProducts() called, {products.Count} product(s): {string.Join(", ", skus)}");
 
             RunAsync(async () =>
             {
                 var result = await AppCoinsNativeBridge.GetProducts(skus);
-                Debug.Log($"[AppCoins] GetProducts result — IsSuccess:{result?.IsSuccess}, Count:{result?.Value?.Length.ToString() ?? "null"}, Error:{result?.Error}");
-                Debug.Log($"[AppCoins] ProductsCallback is {(ProductsCallback == null ? "NULL" : "non-null")}");
                 Dispatch(() =>
                 {
                     if (result != null && result.IsSuccess && result.Value != null)
