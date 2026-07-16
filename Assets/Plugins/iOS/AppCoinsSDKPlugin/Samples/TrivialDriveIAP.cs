@@ -22,7 +22,7 @@ public class TrivialDriveIAP : MonoBehaviour
     private async void Start()
     {
         // 1) Pick the backing store. Automatic uses the AppCoins isAvailable
-        //    check to choose Aptoide when available, otherwise Apple.
+        //    check to choose AppCoins Billing when available, otherwise Apple.
         string store = await AppCoinsIAP.ConfigureStoreAsync(AppCoinsStoreMode.Automatic);
         Debug.Log($"[TrivialDrive] Active store: {store}");
 

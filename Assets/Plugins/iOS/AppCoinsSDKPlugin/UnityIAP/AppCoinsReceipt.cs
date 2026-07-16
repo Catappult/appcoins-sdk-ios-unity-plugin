@@ -55,7 +55,7 @@ namespace AppCoins.Unity
 
             var root = new Dictionary<string, object>
             {
-                ["Store"] = AppCoinsIAP.AptoideStoreName,
+                ["Store"] = AppCoinsIAP.AppCoinsStoreName,
                 ["TransactionID"] = purchase.OrderUID,
                 ["Payload"] = MiniJsonAppCoins.Serialize(payload),
             };

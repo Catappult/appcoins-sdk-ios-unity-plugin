@@ -23,14 +23,14 @@ namespace AppCoins.Unity
     public static class AppCoinsIAP
     {
         /// <summary>Registered name of the AppCoins custom store.</summary>
-        public const string AptoideStoreName = "AppCoinsAppStore";
+        public const string AppCoinsStoreName = "AppCoinsAppStore";
 
         /// <summary>Name of Unity IAP's built-in Apple App Store.</summary>
         public const string AppleStoreName = "AppleAppStore";
 
         /// <summary>
         /// The store selected by the most recent <see cref="ConfigureStoreAsync"/>
-        /// call (either <see cref="AptoideStoreName"/> or <see cref="AppleStoreName"/>).
+        /// call (either <see cref="AppCoinsStoreName"/> or <see cref="AppleStoreName"/>).
         /// </summary>
         public static string SelectedStore { get; private set; }
 
@@ -52,8 +52,8 @@ namespace AppCoins.Unity
             string chosen;
             switch (mode)
             {
-                case AppCoinsStoreMode.Aptoide:
-                    chosen = AptoideStoreName;
+                case AppCoinsStoreMode.AppCoins:
+                    chosen = AppCoinsStoreName;
                     break;
                 case AppCoinsStoreMode.Apple:
                     chosen = AppleStoreName;
@@ -61,7 +61,7 @@ namespace AppCoins.Unity
                 default: // Automatic
                     AppCoinsNativeBridge.Initialize();
                     bool available = await AppCoinsNativeBridge.IsAvailable();
-                    chosen = available ? AptoideStoreName : AppleStoreName;
+                    chosen = available ? AppCoinsStoreName : AppleStoreName;
                     break;
             }
 
@@ -92,7 +92,7 @@ namespace AppCoins.Unity
             EnsureRuntimeObjects();
 
             Store = new AppCoinsStore();
-            UnityIAPServices.AddNewCustomStore(new AppCoinsStoreWrapper(AptoideStoreName, Store));
+            UnityIAPServices.AddNewCustomStore(new AppCoinsStoreWrapper(AppCoinsStoreName, Store));
 
             // Surface AppCoins purchase intents (deep-link / indirect purchases)
             // through the standard Unity flow.

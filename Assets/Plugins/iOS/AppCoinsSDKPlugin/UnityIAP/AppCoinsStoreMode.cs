@@ -13,7 +13,7 @@ namespace AppCoins.Unity
         Automatic,
 
         /// <summary>Always use the AppCoins Billing store.</summary>
-        Aptoide,
+        AppCoins,
 
         /// <summary>Always use the built-in Apple App Store.</summary>
         Apple,
