@@ -41,7 +41,7 @@ namespace AppCoins.Unity
         /// <summary>
         /// Selects the active store according to <paramref name="mode"/> and sets
         /// it as Unity IAP's default. In <see cref="AppCoinsStoreMode.Automatic"/>
-        /// the AppCoins <c>isAvailable</c> check decides between Aptoide and Apple.
+        /// the AppCoins <c>isAvailable</c> check decides between AppCoins Billing and Apple.
         /// Returns the chosen store name.
         /// </summary>
         public static async Task<string> ConfigureStoreAsync(AppCoinsStoreMode mode = AppCoinsStoreMode.Automatic)

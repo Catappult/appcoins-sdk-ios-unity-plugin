@@ -37,7 +37,7 @@ namespace AppCoins.Unity
 
             // isAvailable is checked by AppCoinsIAP.ConfigureStoreAsync (Automatic mode).
             // By the time Connect() is called the store has been chosen deliberately
-            // (Automatic resolved it, or the developer forced Aptoide/Apple), so connect
+            // (Automatic resolved it, or the developer forced AppCoins Billing/Apple), so connect
             // unconditionally — re-checking here would break the explicit modes.
             //
             // Signal success synchronously. Unity IAP already invokes Connect() on the

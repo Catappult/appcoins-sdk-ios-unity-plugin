@@ -1,8 +1,8 @@
 # AppCoins Unity Plugin — iOS
 
-The AppCoins Unity Plugin integrates Aptoide billing into Unity games by registering AppCoins as a **Unity IAP v5 custom store**. Unity IAP is the standard purchasing layer for Unity — a single API that abstracts StoreKit, Google Play Billing, and other backends so your purchasing code works across every platform unchanged.
+The AppCoins Unity Plugin integrates AppCoins Billing into Unity games by registering AppCoins as a **Unity IAP v5 custom store**. Unity IAP is the standard purchasing layer for Unity — a single API that abstracts StoreKit, Google Play Billing, and other backends so your purchasing code works across every platform unchanged.
 
-With this plugin, purchases are routed through AppCoins when running under Aptoide alternative distribution, and fall back to StoreKit when running through the Apple App Store. Apple's Core Technology Commission (CTC) transaction reporting is handled automatically.
+With this plugin, purchases are routed through AppCoins Billing when the app is running on an AppCoins Billing-enabled marketplace, and fall back to StoreKit when running through the Apple App Store. Apple's Core Technology Commission (CTC) transaction reporting is handled automatically.
 
 If you already have Unity IAP 5 set up, adding AppCoins takes **one line of code**.
 
@@ -23,7 +23,7 @@ await AppCoinsIAP.ConfigureStoreAsync(AppCoinsStoreMode.Automatic);
 
 AppCoins is now active alongside your existing Unity IAP integration.
 
-Use `Automatic` if you are distributing the same build on both Aptoide and the Apple App Store — the SDK determines at runtime which store the app was installed from and routes purchases accordingly. Use `AppCoinsStoreMode.Aptoide` if the build is exclusively for Aptoide, or `AppCoinsStoreMode.Apple` if it is exclusively for the Apple App Store.
+Use `Automatic` if you are distributing the same build on both AppCoins Billing-enabled marketplaces and the Apple App Store — the SDK determines at runtime which store the app was installed from and routes purchases accordingly. Use `AppCoinsStoreMode.Aptoide` if the build is distributed exclusively through AppCoins Billing, or `AppCoinsStoreMode.Apple` if it is exclusively for the Apple App Store.
 
 ---
 
@@ -160,7 +160,7 @@ Client-side confirmation is fine for most use cases. For high-value items, serve
 
 ## Testing
 
-### Enabling the Aptoide store in Xcode
+### Enabling AppCoins Billing in Xcode
 
 To test the AppCoins store on a development build, simulate alternative distribution in Xcode:
 
@@ -170,7 +170,7 @@ To test the AppCoins store on a development build, simulate alternative distribu
 
 See [Apple's documentation](https://developer.apple.com/documentation/appdistribution/distributing-your-app-on-an-alternative-marketplace#Test-your-app-during-development) for full details.
 
-### Toggling between Aptoide and Apple in one build
+### Toggling between AppCoins Billing and Apple in one build
 
 With `AppCoinsStoreMode.Automatic`, you can switch the active store at runtime via a deep link. Open the device browser and navigate to:
 
