@@ -204,68 +204,48 @@ namespace AppCoins.Unity
 
         #region Fetch purchases (restore)
 
+        // FetchPurchases() is the "recover unfinished work on launch" call.
+        // Only unfinished purchases need recovery: Unity IAP fires OnPurchasePending
+        // for each PendingOrder, and the developer handles it identically to a new
+        // purchase (grant item → ConfirmPurchase). Already-consumed purchases have
+        // no action for the developer to take, so GetAllPurchases is not called here.
         public override void FetchPurchases()
         {
             RunAsync(async () =>
             {
-                var unfinished = await AppCoinsNativeBridge.GetUnfinishedPurchases();
-                var all = await AppCoinsNativeBridge.GetAllPurchases();
+                var result = await AppCoinsNativeBridge.GetUnfinishedPurchases();
 
                 Dispatch(() =>
                 {
-                    bool unfinishedOk = unfinished != null && unfinished.IsSuccess;
-                    bool allOk = all != null && all.IsSuccess;
-
-                    if (!unfinishedOk && !allOk)
+                    if (result == null || !result.IsSuccess)
                     {
                         PurchaseFetchCallback?.OnPurchasesRetrievalFailed(
                             new PurchasesFetchFailureDescription(
                                 PurchasesFetchFailureReason.Unknown,
-                                unfinished?.Error?.ToString() ?? all?.Error?.ToString() ?? "Failed to fetch purchases."));
+                                result?.Error?.ToString() ?? "Failed to fetch purchases."));
                         return;
                     }
 
                     var orders = new List<Order>();
-                    var seen = new HashSet<string>();
 
-                    AppendOrders(orders, seen, unfinished?.Value);
-                    AppendOrders(orders, seen, all?.Value);
+                    if (result.Value != null)
+                    {
+                        foreach (var p in result.Value)
+                        {
+                            if (p == null || string.IsNullOrEmpty(p.UID)) continue;
+
+                            var cart = BuildCart(p.Sku);
+                            if (cart == null) continue;
+
+                            var receipt = AppCoinsReceipt.Build(p, null);
+                            var info = new AppCoinsOrderInfo(receipt, p.OrderUID);
+                            orders.Add(new PendingOrder(cart, info));
+                        }
+                    }
 
                     PurchaseFetchCallback?.OnAllPurchasesRetrieved(orders);
                 });
             });
-        }
-
-        private void AppendOrders(List<Order> orders, HashSet<string> seen, ACPurchase[] purchases)
-        {
-            if (purchases == null) return;
-
-            foreach (var p in purchases)
-            {
-                if (p == null || string.IsNullOrEmpty(p.UID) || !seen.Add(p.UID))
-                {
-                    continue;
-                }
-
-                var cart = BuildCart(p.Sku);
-                if (cart == null)
-                {
-                    // Product not in the cache (not fetched yet) - can't build a cart item.
-                    continue;
-                }
-
-                var receipt = AppCoinsReceipt.Build(p, null);
-                var info = new AppCoinsOrderInfo(receipt, p.OrderUID);
-
-                if (IsUnfinished(p.State))
-                {
-                    orders.Add(new PendingOrder(cart, info));
-                }
-                else
-                {
-                    orders.Add(new ConfirmedOrder(cart, info));
-                }
-            }
         }
 
         #endregion
