@@ -100,6 +100,9 @@ namespace AppCoins.Internal
         public string PriceSymbol;
     }
 
+    // Mirrors the TransactionData JSON produced by UnityPlugin.swift.
+    // Field names match the old Purchase model so the rest of the store
+    // layer (AppCoinsStore, AppCoinsReceipt) requires no structural change.
     [Serializable]
     internal class Purchase
     {
@@ -132,14 +135,6 @@ namespace AppCoins.Internal
         }
     }
 
-    [Serializable]
-    internal class PurchaseIntent
-    {
-        public string ID;
-        public Product Product;
-        public string Timestamp;
-    }
-
     // ---------------------------------------------------------------------
     // Internal native bridge
     //
@@ -156,11 +151,6 @@ namespace AppCoins.Internal
         public const string PURCHASE_STATE_USER_CANCELLED = "user_cancelled";
         public const string PURCHASE_STATE_FAILED = "failed";
 
-        // Native purchase lifecycle states (Purchase.State)
-        public const string PURCHASE_PENDING = "PENDING";
-        public const string PURCHASE_ACKNOWLEDGED = "ACKNOWLEDGED";
-        public const string PURCHASE_CONSUMED = "CONSUMED";
-
         // Verification results
         public const string PURCHASE_VERIFICATION_STATE_VERIFIED = "verified";
         public const string PURCHASE_VERIFICATION_STATE_UNVERIFIED = "unverified";
@@ -168,7 +158,6 @@ namespace AppCoins.Internal
         private delegate void JsonCallback(string result);
 
         private static bool _initialized;
-        private static bool _isObservingPurchases;
 
 #if UNITY_IOS && !UNITY_EDITOR
         [DllImport("__Internal")] private static extern void _initialize();
@@ -180,10 +169,6 @@ namespace AppCoins.Internal
         [DllImport("__Internal")] private static extern void _getLatestPurchase(string sku, JsonCallback callback);
         [DllImport("__Internal")] private static extern void _getUnfinishedPurchases(JsonCallback callback);
         [DllImport("__Internal")] private static extern void _consumePurchase(string sku, JsonCallback callback);
-        [DllImport("__Internal")] private static extern void _getPurchaseIntent(JsonCallback callback);
-        [DllImport("__Internal")] private static extern void _confirmPurchaseIntent(string payload, JsonCallback callback);
-        [DllImport("__Internal")] private static extern void _rejectPurchaseIntent();
-        [DllImport("__Internal")] private static extern void _startPurchaseUpdates();
 #endif
 
         // JsonUtility.FromJson<T> cannot deserialize generic types: a call like
@@ -455,39 +440,6 @@ namespace AppCoins.Internal
 
         #endregion
 
-        #region Confirm / Reject Purchase Intent
-
-        private static TaskCompletionSource<AppCoinsSDKPurchaseResult> _tcsConfirmPurchaseIntent;
-
-        public static Task<AppCoinsSDKPurchaseResult> ConfirmPurchaseIntent(string payload = "")
-        {
-#if UNITY_IOS && !UNITY_EDITOR
-            _tcsConfirmPurchaseIntent = new TaskCompletionSource<AppCoinsSDKPurchaseResult>();
-            _confirmPurchaseIntent(payload ?? "", OnConfirmPurchaseIntent);
-            return _tcsConfirmPurchaseIntent.Task;
-#else
-            return Task.FromResult(AppCoinsSDKPurchaseResult.Failure(
-                "systemError", "AppCoins SDK unavailable", "ConfirmPurchaseIntent() called on unsupported platform"));
-#endif
-        }
-
-#if UNITY_IOS && !UNITY_EDITOR
-        [AOT.MonoPInvokeCallback(typeof(JsonCallback))]
-        private static void OnConfirmPurchaseIntent(string json)
-        {
-            _tcsConfirmPurchaseIntent.TrySetResult(JsonUtility.FromJson<AppCoinsSDKPurchaseResult>(json));
-        }
-#endif
-
-        public static void RejectPurchaseIntent()
-        {
-#if UNITY_IOS && !UNITY_EDITOR
-            _rejectPurchaseIntent();
-#endif
-        }
-
-        #endregion
-
         #region MiniJson array helpers
 
         // JsonUtility silently returns null for arrays of complex types in IL2CPP builds.
@@ -535,7 +487,7 @@ namespace AppCoins.Internal
         private static Purchase ParsePurchase(Dictionary<string, object> p)
         {
             if (p == null) return null;
-            var purchase = new Purchase
+            return new Purchase
             {
                 UID      = GetStr(p, "UID"),
                 Sku      = GetStr(p, "Sku"),
@@ -544,47 +496,10 @@ namespace AppCoins.Internal
                 Payload  = GetStr(p, "Payload"),
                 Created  = GetStr(p, "Created"),
             };
-
-            if (p.TryGetValue("Verification", out var vv) && vv is Dictionary<string, object> vd)
-            {
-                var verif = new Purchase.PurchaseVerification
-                {
-                    Type      = GetStr(vd, "Type"),
-                    Signature = GetStr(vd, "Signature"),
-                };
-                if (vd.TryGetValue("Data", out var dd) && dd is Dictionary<string, object> dataDict)
-                {
-                    verif.Data = new Purchase.PurchaseVerificationData
-                    {
-                        OrderId          = GetStr(dataDict, "OrderId"),
-                        PackageName      = GetStr(dataDict, "PackageName"),
-                        ProductId        = GetStr(dataDict, "ProductId"),
-                        PurchaseTime     = dataDict.TryGetValue("PurchaseTime",  out var pt) && pt != null ? Convert.ToInt64(pt)  : 0L,
-                        PurchaseToken    = GetStr(dataDict, "PurchaseToken"),
-                        PurchaseState    = dataDict.TryGetValue("PurchaseState", out var ps) && ps != null ? Convert.ToInt32(ps) : 0,
-                        DeveloperPayload = GetStr(dataDict, "DeveloperPayload"),
-                    };
-                }
-                purchase.Verification = verif;
-            }
-            return purchase;
         }
 
         private static string GetStr(Dictionary<string, object> d, string key)
             => d.TryGetValue(key, out var v) ? v as string : null;
-
-        #endregion
-
-        #region Purchase updates (indirect / deep-link intents)
-
-        public static void StartObservingPurchases()
-        {
-            if (_isObservingPurchases) return;
-            _isObservingPurchases = true;
-#if UNITY_IOS && !UNITY_EDITOR
-            _startPurchaseUpdates();
-#endif
-        }
 
         #endregion
     }

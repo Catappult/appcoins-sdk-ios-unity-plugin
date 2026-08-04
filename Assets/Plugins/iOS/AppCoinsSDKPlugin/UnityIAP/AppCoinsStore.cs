@@ -8,7 +8,6 @@ using UnityEngine.Purchasing;
 using UnityEngine.Purchasing.Extension;
 using AppCoins.Internal;
 using Product = UnityEngine.Purchasing.Product;
-using ACPurchase = AppCoins.Internal.Purchase;
 
 namespace AppCoins.Unity
 {
@@ -26,6 +25,10 @@ namespace AppCoins.Unity
     {
         /// <summary>Current connection state, surfaced through the store wrapper.</summary>
         public ConnectionState ConnectionState { get; private set; } = ConnectionState.Disconnected;
+
+        // Raw purchases returned by FetchPurchases() whose SKUs were not yet in the product
+        // cache at the time of the call. Drained in FetchProducts() once the cache is ready.
+        private List<Purchase> _deferredUnfinishedPurchases;
 
         #region Connect
 
@@ -74,6 +77,9 @@ namespace AppCoins.Unity
                             descriptions.Add(new ProductDescription(p.Sku, metadata));
                         }
                         ProductsCallback?.OnProductsFetched(descriptions);
+                        // Product cache is now populated — surface any purchases that arrived
+                        // before it was ready (FetchPurchases called before FetchProducts finished).
+                        DrainDeferredPurchases();
                     }
                     else
                     {
@@ -148,17 +154,6 @@ namespace AppCoins.Unity
             }
         }
 
-        /// <summary>
-        /// Surfaces an AppCoins purchase-intent (indirect / deep-link purchase)
-        /// through the standard Unity flow as a pending order.
-        /// </summary>
-        internal void SurfacePendingOrder(ICart cart, ACPurchase purchase, string verificationResult)
-        {
-            var receipt = AppCoinsReceipt.Build(purchase, verificationResult);
-            var info = new AppCoinsOrderInfo(receipt, purchase?.OrderUID);
-            Dispatch(() => PurchaseCallback?.OnPurchaseSucceeded(new PendingOrder(cart, info)));
-        }
-
         #endregion
 
         #region Finish transaction (confirm / consume)
@@ -230,7 +225,13 @@ namespace AppCoins.Unity
                             if (p == null || string.IsNullOrEmpty(p.UID)) continue;
 
                             var cart = BuildCart(p.Sku);
-                            if (cart == null) continue;
+                            if (cart == null)
+                            {
+                                // Product not in cache yet (FetchPurchases raced ahead of FetchProducts).
+                                // Defer — DrainDeferredPurchases() will retry once the cache is ready.
+                                (_deferredUnfinishedPurchases ??= new List<Purchase>()).Add(p);
+                                continue;
+                            }
 
                             var receipt = AppCoinsReceipt.Build(p, null);
                             var info = new AppCoinsOrderInfo(receipt, p.OrderUID);
@@ -251,6 +252,8 @@ namespace AppCoins.Unity
         {
             RunAsync(async () =>
             {
+                // GetLatestPurchase only returns transactions that are still unfinished
+                // (PENDING / ACKNOWLEDGED), so any non-null result means entitled.
                 var result = await AppCoinsNativeBridge.GetLatestPurchase(product.storeSpecificId);
                 Dispatch(() =>
                 {
@@ -262,9 +265,8 @@ namespace AppCoins.Unity
                         status = EntitlementStatus.Unknown;
                         message = result?.Error?.ToString();
                     }
-                    else if (result.Value != null && IsUnfinished(result.Value.State))
+                    else if (result.Value != null)
                     {
-                        // A consumable that was paid for but not yet consumed.
                         status = EntitlementStatus.EntitledUntilConsumed;
                     }
 
@@ -277,6 +279,31 @@ namespace AppCoins.Unity
 
         #region Helpers
 
+        private void DrainDeferredPurchases()
+        {
+            var deferred = _deferredUnfinishedPurchases;
+            if (deferred == null || deferred.Count == 0) return;
+            _deferredUnfinishedPurchases = null;
+
+            var orders = new List<Order>();
+            foreach (var p in deferred)
+            {
+                if (p == null || string.IsNullOrEmpty(p.UID)) continue;
+                var cart = BuildCart(p.Sku);
+                if (cart == null)
+                {
+                    Debug.LogWarning($"[AppCoins] Could not recover unfinished purchase for SKU '{p.Sku}': product not found in catalog.");
+                    continue;
+                }
+                var receipt = AppCoinsReceipt.Build(p, null);
+                var info = new AppCoinsOrderInfo(receipt, p.OrderUID);
+                orders.Add(new PendingOrder(cart, info));
+            }
+
+            if (orders.Count > 0)
+                PurchaseFetchCallback?.OnAllPurchasesRetrieved(orders);
+        }
+
         internal ICart BuildCart(string storeSpecificId)
         {
             if (string.IsNullOrEmpty(storeSpecificId)) return null;
@@ -288,12 +315,6 @@ namespace AppCoins.Unity
         {
             var item = cart?.Items()?.FirstOrDefault();
             return item?.Product?.definition?.storeSpecificId;
-        }
-
-        private static bool IsUnfinished(string state)
-        {
-            return state == AppCoinsNativeBridge.PURCHASE_PENDING
-                || state == AppCoinsNativeBridge.PURCHASE_ACKNOWLEDGED;
         }
 
         private static decimal ParsePrice(string priceValue)

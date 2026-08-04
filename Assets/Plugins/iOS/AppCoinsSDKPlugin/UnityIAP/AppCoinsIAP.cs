@@ -1,4 +1,3 @@
-using System;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Purchasing;
@@ -77,77 +76,18 @@ namespace AppCoins.Unity
         }
 
         /// <summary>
-        /// Registers the AppCoins custom store with Unity IAP (idempotent) and
-        /// wires up the runtime helpers. Called automatically on iOS at startup.
+        /// Registers the AppCoins custom store with Unity IAP (idempotent).
+        /// Called automatically on iOS at startup.
         /// </summary>
         internal static void EnsureRegistered()
         {
 #if UNITY_IOS
-            if (_registered)
-            {
-                return;
-            }
+            if (_registered) return;
             _registered = true;
-
-            EnsureRuntimeObjects();
 
             Store = new AppCoinsStore();
             UnityIAPServices.AddNewCustomStore(new AppCoinsStoreWrapper(AppCoinsStoreName, Store));
-
-            // Surface AppCoins purchase intents (deep-link / indirect purchases)
-            // through the standard Unity flow.
-            AppCoinsPurchaseManager.OnPurchaseIntent += OnPurchaseIntent;
 #endif
         }
-
-#if UNITY_IOS
-        private static void EnsureRuntimeObjects()
-        {
-            // Creating the manager starts native purchase-update observation and
-            // provides the UnitySendMessage("AppCoinsPurchaseManager", ...) target.
-            _ = AppCoinsPurchaseManager.Instance;
-        }
-
-        private static void OnPurchaseIntent(PurchaseIntent intent)
-        {
-            if (Store == null || intent?.Product == null)
-            {
-                return;
-            }
-
-            string sku = intent.Product.Sku;
-            RunAsync(async () =>
-            {
-                // Confirm the intent to complete the AppCoins purchase, then
-                // surface it as a standard Unity pending order for the game to
-                // validate and confirm (consume).
-                var result = await AppCoinsNativeBridge.ConfirmPurchaseIntent(string.Empty);
-                if (result != null && result.State == AppCoinsNativeBridge.PURCHASE_STATE_SUCCESS)
-                {
-                    var cart = Store.BuildCart(sku);
-                    if (cart != null)
-                    {
-                        Store.SurfacePendingOrder(cart, result.Value?.Purchase, result.Value?.VerificationResult);
-                    }
-                    else
-                    {
-                        Debug.LogWarning($"[AppCoins] Purchase intent for '{sku}' arrived before the product was fetched; ignoring.");
-                    }
-                }
-            });
-        }
-
-        private static async void RunAsync(Func<Task> operation)
-        {
-            try
-            {
-                await operation();
-            }
-            catch (Exception e)
-            {
-                Debug.LogError("[AppCoins] Purchase-intent handling failed: " + e);
-            }
-        }
-#endif
     }
 }
