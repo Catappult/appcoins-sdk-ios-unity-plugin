@@ -17,7 +17,7 @@ extern "C" {
             if (!jsonData) {
                 NSLog(@"Failed to serialize JSON: %@", error);
                 if (callback) {
-                    callback(""); // Call with an empty string or error message
+                    callback("");
                 }
                 return;
             }
@@ -36,7 +36,7 @@ extern "C" {
             if (!jsonData) {
                 NSLog(@"Failed to serialize JSON: %@", error);
                 if (callback) {
-                    callback(""); // Call with an empty string or error message
+                    callback("");
                 }
                 return;
             }
@@ -53,7 +53,7 @@ extern "C" {
         for (int i = 0; i < count; i++) {
             [skuArray addObject:[NSString stringWithUTF8String:skus[i]]];
         }
-        
+
         NSArray *skuNSArray = [skuArray copy];
         [UnityPlugin.shared getProductsWithSkus:skuNSArray completion:^(NSDictionary *data) {
             NSError *error = nil;
@@ -61,7 +61,7 @@ extern "C" {
             if (!jsonData) {
                 NSLog(@"Failed to serialize JSON: %@", error);
                 if (callback) {
-                    callback(""); // Call with an empty string or error message
+                    callback("");
                 }
                 return;
             }
@@ -76,18 +76,18 @@ extern "C" {
     void _purchase(const char *sku, const char *payload, JsonCallback callback) {
         NSString *skuString = [NSString stringWithUTF8String:sku];
         NSString *payloadString = [NSString stringWithUTF8String:payload];
-        
+
         [UnityPlugin.shared purchaseWithSku:skuString payload:payloadString completion:^(NSDictionary *data) {
             NSError *error = nil;
             NSData *jsonData = [NSJSONSerialization dataWithJSONObject:data options:0 error:&error];
             if (!jsonData) {
                 NSLog(@"Failed to serialize JSON: %@", error);
                 if (callback) {
-                    callback(""); // Call with an empty string or error message
+                    callback("");
                 }
                 return;
             }
-            
+
             NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
             if (callback) {
                 callback([jsonString UTF8String]);
@@ -102,7 +102,7 @@ extern "C" {
             if (!jsonData) {
                 NSLog(@"Failed to serialize JSON: %@", error);
                 if (callback) {
-                    callback(""); // Call with an empty string or error message
+                    callback("");
                 }
                 return;
             }
@@ -123,7 +123,7 @@ extern "C" {
             if (!jsonData) {
                 NSLog(@"Failed to serialize JSON: %@", error);
                 if (callback) {
-                    callback(""); // Call with an empty string or error message
+                    callback("");
                 }
                 return;
             }
@@ -142,7 +142,7 @@ extern "C" {
             if (!jsonData) {
                 NSLog(@"Failed to serialize JSON: %@", error);
                 if (callback) {
-                    callback(""); // Call with an empty string or error message
+                    callback("");
                 }
                 return;
             }
@@ -156,18 +156,18 @@ extern "C" {
 
     void _consumePurchase(const char *sku, JsonCallback callback) {
         NSString *skuString = [NSString stringWithUTF8String:sku];
-        
+
         [UnityPlugin.shared consumePurchaseWithSku:skuString completion:^(NSDictionary *data) {
             NSError *error = nil;
             NSData *jsonData = [NSJSONSerialization dataWithJSONObject:data options:0 error:&error];
             if (!jsonData) {
                 NSLog(@"Failed to serialize JSON: %@", error);
                 if (callback) {
-                    callback(""); // Call with an empty string or error message
+                    callback("");
                 }
                 return;
             }
-            
+
             NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
             if (callback) {
                 callback([jsonString UTF8String]);
@@ -182,26 +182,7 @@ extern "C" {
             if (!jsonData) {
                 NSLog(@"Failed to serialize JSON: %@", error);
                 if (callback) {
-                    callback(""); // Call with an empty string or error message
-                }
-                return;
-            }
-            
-            NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
-            if (callback) {
-                callback([jsonString UTF8String]);
-            }
-        }];
-    }
-
-    void _getPurchaseIntent(JsonCallback callback) {
-        [UnityPlugin.shared getPurchaseIntentWithCompletion:^(NSDictionary *data) {
-            NSError *error = nil;
-            NSData *jsonData = [NSJSONSerialization dataWithJSONObject:data options:0 error:&error];
-            if (!jsonData) {
-                NSLog(@"Failed to serialize JSON: %@", error);
-                if (callback) {
-                    callback(""); // Call with an empty string or error message
+                    callback("");
                 }
                 return;
             }
@@ -211,35 +192,6 @@ extern "C" {
                 callback([jsonString UTF8String]);
             }
         }];
-    }
-
-    void _confirmPurchaseIntent(const char *payload, JsonCallback callback) {
-        NSString *payloadString = [NSString stringWithUTF8String:payload];
-        
-        [UnityPlugin.shared confirmPurchaseIntentWithPayload:payloadString completion:^(NSDictionary *data) {
-            NSError *error = nil;
-            NSData *jsonData = [NSJSONSerialization dataWithJSONObject:data options:0 error:&error];
-            if (!jsonData) {
-                NSLog(@"Failed to serialize JSON: %@", error);
-                if (callback) {
-                    callback(""); // Call with an empty string or error message
-                }
-                return;
-            }
-            
-            NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
-            if (callback) {
-                callback([jsonString UTF8String]);
-            }
-        }];
-    }
-
-    void _rejectPurchaseIntent() {
-        [UnityPlugin.shared rejectPurchaseIntent];
-    }
-
-    void _startPurchaseUpdates() {
-        [UnityPlugin.shared startObservingPurchases];
     }
 
     void UnitySendMessageBridge(const char *objectName, const char *methodName, const char *message) {
