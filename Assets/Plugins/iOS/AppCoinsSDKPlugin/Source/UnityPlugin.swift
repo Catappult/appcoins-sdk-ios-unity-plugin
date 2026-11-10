@@ -275,9 +275,9 @@ public struct AppCoinsSDKErrorData {
         Task {
             var transactions: [TransactionData] = []
             for await result in Transaction.unfinished {
-                switch result {
-                case .verified(let t):      transactions.append(TransactionData(transaction: t))
-                case .unverified(let t, _): transactions.append(TransactionData(transaction: t))
+                // Only verified transactions are returned for recovery, matching getLatestPurchase and consumePurchase
+                if case .verified(let t) = result {
+                    transactions.append(TransactionData(transaction: t))
                 }
             }
             completion(["IsSuccess": true, "Value": transactions.map { $0.dictionaryRepresentation }])
